@@ -169,13 +169,13 @@ function Get-StorageAccountCostEstimate {
     [pscustomobject]@{
         SubscriptionId = ($Account.id -split '/')[2]
         StorageAccountName = $Account.name
-        StorageAccountId = $Account.id
-        SampleDays = $Configuration.SampleDays
-        StorageAccountTransactions = $monthlyTransactions
         StorageAccountCost = $storageCost
+        StorageAccountTransactions = $monthlyTransactions
         OldEstimateCost = $oldEstimateCost
         OverageCost = $overageCost
         OverageTransactions = $overageTransactions
+        StorageAccountId = $Account.id
+        SampleDays = $Configuration.SampleDays
         EstimatedMonthlyIngressGB = $monthlyIngressGB
         MalwareScanningBillableGB = $billableGB
         MalwareScanningCost = $malwareCost

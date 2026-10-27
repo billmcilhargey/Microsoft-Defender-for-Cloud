@@ -394,7 +394,10 @@ Describe 'Script entry point, tenant scope, and CSV output' {
         $imported = @(Import-Csv -LiteralPath $csv)
         $imported.Count | Should -Be 253
         $imported[0].MalwareScanningCost | Should -Be '0.15'
-        (Get-Content -LiteralPath $csv -TotalCount 1) | Should -BeLike '"SubscriptionId","StorageAccountName",*'
+        (Get-Content -LiteralPath $csv -TotalCount 1) | Should -BeLike (
+            '"SubscriptionId","StorageAccountName","StorageAccountCost","StorageAccountTransactions",' +
+            '"OldEstimateCost","OverageCost","OverageTransactions","StorageAccountId","SampleDays",*'
+        )
         Should -Invoke Set-AzContext -Times 1 -Exactly -ParameterFilter {
             $PesterBoundParameters.ContainsKey('Context')
         }
