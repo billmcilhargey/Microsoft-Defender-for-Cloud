@@ -1,6 +1,13 @@
 {
   "contentVersion": "4.2.0.0",
   "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for the workbook. Defaults to the resource group's location."
+      }
+    },
     "workbookDisplayName": {
       "type": "string",
       "defaultValue": "StorageCostV4.2",
@@ -34,7 +41,7 @@
     {
       "name": "[parameters('workbookId')]",
       "type": "Microsoft.Insights/workbooks",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('location')]",
       "apiVersion": "2023-06-01",
       "dependsOn": [],
       "kind": "shared",

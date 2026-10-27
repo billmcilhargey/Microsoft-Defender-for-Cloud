@@ -12,13 +12,18 @@
   * [DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1](#defenderforstorage-costestimation-resourcelevelvisibilityps1)
 
 > [!NOTE]
-> A new pricing plan is now available for Microsoft Defender for Cloud that charges you according to the number of storage accounts it protects (per-storage account). The cost in the legacy pricing plan increases according to the number of analyzed transactions in the storage account (per-transaction). The new per-storage account plan fixes costs per storage account but accounts with an exceptionally high transaction volume incur an overage charge. For details about the pricing plans, see [Microsoft Defender for Cloud pricing page](https://azure.microsoft.com/pricing/details/defender-for-cloud/)
-> 
+> A new pricing plan is now available for Microsoft Defender for Cloud that charges you according to the number of storage accounts it protects (per-storage account).
+> The cost in the legacy pricing plan increases according to the number of analyzed transactions in the storage account (per-transaction).
+> The new per-storage account plan fixes costs per storage account but accounts with an exceptionally high transaction volume incur an overage charge.
+> For details about the pricing plans, see [Microsoft Defender for Cloud pricing page](https://azure.microsoft.com/pricing/details/defender-for-cloud/)
+>
 > The new per-storage plan is only supported on public clouds, and can be enabled only at the subscription level.
+
+## Recommended workbook
 
 > [!IMPORTANT]
 > You can also leverage the [Microsoft Defender for Storage pricing estimation workbook](https://github.com/Azure/Microsoft-Defender-for-Cloud/tree/main/Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation)
-> 
+>
 > **Credits:** [Fernanda Vela](https://www.linkedin.com/in/mfvelah/), [Aviv Shitrit](https://github.com/t-ashitrit), [Eitan Shteinberg](https://www.linkedin.com/in/eitan-shteinberg/), [Shay Amar](https://www.linkedin.com/in/shay-amar/), [Dick Lake](https://www.linkedin.com/in/richard-lake-b3797394/)
 
 ## Defender for Storage Overview
@@ -51,7 +56,7 @@ This script will get estimated metrics on Azure Storage V2 Accounts to help esti
 - The price calculations are based on list price
 - The script will output the totals and export the data to a csv file
 
-#### Examples 
+#### Examples
 
 ##### Get estimates for all storage accounts in the Tenant
 ```powershell

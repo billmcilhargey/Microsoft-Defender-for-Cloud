@@ -4,7 +4,7 @@ BeforeAll {
     $script:templatePath = Join-Path $script:directory 'D4StorageARMTemplate.json'
     . $script:estimatorPath
 
-    function New-TestContext {
+    function Get-TestContext {
         param([string]$SubscriptionId = '00000000-0000-0000-0000-000000000001')
         $context = [Microsoft.Azure.Commands.Profile.Models.Core.PSAzureContext]::new()
         $context.Tenant = [Microsoft.Azure.Commands.Profile.Models.PSAzureTenant]::new()
@@ -15,7 +15,7 @@ BeforeAll {
         $context
     }
 
-    function New-TestAccount {
+    function Get-TestAccount {
         param(
             [string]$Name = 'fixtureaccount',
             [string]$SubscriptionId = '00000000-0000-0000-0000-000000000001',
@@ -34,7 +34,7 @@ BeforeAll {
         }
     }
 
-    function New-TestConfiguration {
+    function Get-TestConfiguration {
         param([int]$Days = 30)
         $end = [datetime]'2026-01-31T00:00:00Z'
         [pscustomobject]@{
@@ -48,7 +48,7 @@ BeforeAll {
         }
     }
 
-    function New-TestMetric {
+    function Get-TestMetric {
         param([string]$Name, $Total)
         [pscustomobject]@{
             value = @([pscustomobject]@{
@@ -78,6 +78,8 @@ Describe 'Single-source workbook release' {
         $script:template.parameters.workbookDisplayName.defaultValue | Should -Be 'StorageCostV4.2'
         $script:template.'$schema' | Should -Be 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
         $script:template.resources[0].apiVersion | Should -Be '2023-06-01'
+        $script:template.parameters.location.defaultValue | Should -Be '[resourceGroup().location]'
+        $script:template.resources[0].location | Should -Be "[parameters('location')]"
         $script:workbook.version | Should -Be 'Notebook/1.0'
         $script:workbook.items[0].content.json | Should -Match '\bv4\.2$'
         $script:workbook.items.Count | Should -Be 10
@@ -126,18 +128,18 @@ Describe 'Single-source workbook release' {
 
 Describe 'Storage and malware-scanning cost model' {
     BeforeEach {
-        $script:configuration = New-TestConfiguration
-        $script:account = New-TestAccount
-        $script:context = New-TestContext
+        $script:configuration = Get-TestConfiguration
+        $script:account = Get-TestAccount
+        $script:context = Get-TestContext
         Mock Write-Warning {}
         Mock Invoke-StorageEstimationGet {
             param($Path)
             if ($Path -match 'metricnames=Ingress') {
-                New-TestMetric -Name Ingress -Total 1073741824
+                Get-TestMetric -Name Ingress -Total 1073741824
             } elseif ($Path -match '/blobServices/') {
-                New-TestMetric -Name Transactions -Total 70000000
+                Get-TestMetric -Name Transactions -Total 70000000
             } else {
-                New-TestMetric -Name Transactions -Total 3000000
+                Get-TestMetric -Name Transactions -Total 3000000
             }
         }
     }
@@ -155,11 +157,11 @@ Describe 'Storage and malware-scanning cost model' {
         Mock Invoke-StorageEstimationGet {
             param($Path)
             if ($Path -match 'metricnames=Ingress') {
-                New-TestMetric Ingress 1073741824
+                Get-TestMetric Ingress 1073741824
             } elseif ($Path -match '/blobServices/') {
-                New-TestMetric Transactions 5000000000
+                Get-TestMetric Transactions 5000000000
             } else {
-                New-TestMetric Transactions 0
+                Get-TestMetric Transactions 0
             }
         }
         $row = Get-StorageAccountCostEstimate $script:account $script:context $script:configuration
@@ -170,15 +172,15 @@ Describe 'Storage and malware-scanning cost model' {
     }
 
     It 'projects a seven-day sample to 30 days using the workbook GB conversion' {
-        $script:configuration = New-TestConfiguration -Days 7
+        $script:configuration = Get-TestConfiguration -Days 7
         Mock Invoke-StorageEstimationGet {
             param($Path)
             if ($Path -match 'metricnames=Ingress') {
-                New-TestMetric Ingress (7 * [decimal]1073741824)
+                Get-TestMetric Ingress (7 * [decimal]1073741824)
             } elseif ($Path -match '/blobServices/') {
-                New-TestMetric Transactions 7000000
+                Get-TestMetric Transactions 7000000
             } else {
-                New-TestMetric Transactions 0
+                Get-TestMetric Transactions 0
             }
         }
         $row = Get-StorageAccountCostEstimate $script:account $script:context $script:configuration
@@ -197,9 +199,9 @@ Describe 'Storage and malware-scanning cost model' {
         Mock Invoke-StorageEstimationGet {
             param($Path)
             if ($Path -match 'metricnames=Ingress') {
-                New-TestMetric Ingress (10 * [decimal]1073741824)
+                Get-TestMetric Ingress (10 * [decimal]1073741824)
             } else {
-                New-TestMetric Transactions 0
+                Get-TestMetric Transactions 0
             }
         }
         $row = Get-StorageAccountCostEstimate $script:account $script:context $script:configuration
@@ -216,7 +218,7 @@ Describe 'Storage and malware-scanning cost model' {
     }
 
     It 'does not query Blob metrics or charge scanning for a File-only account' {
-        $script:account = New-TestAccount -Blob:$false
+        $script:account = Get-TestAccount -Blob:$false
         $row = Get-StorageAccountCostEstimate $script:account $script:context $script:configuration
         $row.MalwareScanningCost | Should -Be 0
         $row.EstimatedMonthlyCost | Should -Be 10
@@ -228,8 +230,8 @@ Describe 'Storage and malware-scanning cost model' {
     It 'treats explicit zero observations as valid data' {
         Mock Invoke-StorageEstimationGet {
             param($Path)
-            if ($Path -match 'metricnames=Ingress') { New-TestMetric Ingress 0 }
-            else { New-TestMetric Transactions 0 }
+            if ($Path -match 'metricnames=Ingress') { Get-TestMetric Ingress 0 }
+            else { Get-TestMetric Transactions 0 }
         }
         $row = Get-StorageAccountCostEstimate $script:account $script:context $script:configuration
         $row.EstimatedMonthlyCost | Should -Be 10
@@ -240,8 +242,8 @@ Describe 'Storage and malware-scanning cost model' {
     It 'warns and leaves the scanning charge unknown when ingress observations are missing' {
         Mock Invoke-StorageEstimationGet {
             param($Path)
-            if ($Path -match 'metricnames=Ingress') { New-TestMetric Ingress $null }
-            else { New-TestMetric Transactions 0 }
+            if ($Path -match 'metricnames=Ingress') { Get-TestMetric Ingress $null }
+            else { Get-TestMetric Transactions 0 }
         }
         $row = Get-StorageAccountCostEstimate $script:account $script:context $script:configuration
         $row.StorageAccountCost | Should -Be 10
@@ -254,8 +256,8 @@ Describe 'Storage and malware-scanning cost model' {
     It 'does not turn missing transaction observations into a base-only complete estimate' {
         Mock Invoke-StorageEstimationGet {
             param($Path)
-            if ($Path -match 'metricnames=Ingress') { New-TestMetric Ingress 1073741824 }
-            else { New-TestMetric Transactions $null }
+            if ($Path -match 'metricnames=Ingress') { Get-TestMetric Ingress 1073741824 }
+            else { Get-TestMetric Transactions $null }
         }
         $row = Get-StorageAccountCostEstimate $script:account $script:context $script:configuration
         $row.StorageAccountTransactions | Should -BeNullOrEmpty
@@ -268,7 +270,7 @@ Describe 'Storage and malware-scanning cost model' {
         Mock Invoke-StorageEstimationGet { [pscustomobject]@{ value = @() } }
         { Get-StorageAccountCostEstimate $script:account $script:context $script:configuration } |
             Should -Throw '*Expected one Transactions metric*'
-        Mock Invoke-StorageEstimationGet { New-TestMetric Transactions -1 }
+        Mock Invoke-StorageEstimationGet { Get-TestMetric Transactions -1 }
         { Get-StorageAccountCostEstimate $script:account $script:context $script:configuration } |
             Should -Throw '*negative total*'
     }
@@ -283,7 +285,7 @@ Describe 'Storage and malware-scanning cost model' {
 
     It 'surfaces an embedded metric error even when the HTTP response succeeded' {
         Mock Invoke-StorageEstimationGet {
-            $response = New-TestMetric Transactions 0
+            $response = Get-TestMetric Transactions 0
             $response.value[0] | Add-Member -NotePropertyName errorCode -NotePropertyValue InvalidSampling
             $response
         }
@@ -294,7 +296,7 @@ Describe 'Storage and malware-scanning cost model' {
 
 Describe 'Read-only ARM request handling' {
     BeforeEach {
-        $script:context = New-TestContext
+        $script:context = Get-TestContext
         Mock Start-Sleep {}
     }
 
@@ -338,8 +340,8 @@ Describe 'Script entry point, tenant scope, and CSV output' {
     BeforeEach {
         $script:firstSub = '00000000-0000-0000-0000-000000000001'
         $script:secondSub = '00000000-0000-0000-0000-000000000002'
-        Mock Write-Host {}
-        Mock Get-AzContext { New-TestContext }
+        Mock Write-Information {}
+        Mock Get-AzContext { Get-TestContext }
         Mock Get-AzSubscription {
             @(
                 [pscustomobject]@{ Id = '00000000-0000-0000-0000-000000000001'; State = 'Enabled' },
@@ -350,7 +352,7 @@ Describe 'Script entry point, tenant scope, and CSV output' {
         Mock Set-AzContext {
             param($Subscription, $Context)
             if ($null -ne $Context) { $Context }
-            else { New-TestContext -SubscriptionId $Subscription }
+            else { Get-TestContext -SubscriptionId $Subscription }
         }
         Mock Invoke-AzRestMethod {
             param($Method, $Path)
@@ -358,9 +360,9 @@ Describe 'Script entry point, tenant scope, and CSV output' {
             if ($Path -match '/providers/Microsoft.Storage/storageAccounts\?') {
                 $id = ($Path -split '/')[2]
                 $accounts = if ($id -eq '00000000-0000-0000-0000-000000000001') {
-                    @(1..251 | ForEach-Object { New-TestAccount -Name "first$_" })
+                    @(1..251 | ForEach-Object { Get-TestAccount -Name "first$_" })
                 } else {
-                    @(1..2 | ForEach-Object { New-TestAccount -Name "second$_" -SubscriptionId $id })
+                    @(1..2 | ForEach-Object { Get-TestAccount -Name "second$_" -SubscriptionId $id })
                 }
                 $body = @{ value = @($accounts | Select-Object -First 200) }
                 if ($Path -match 'skiptoken=second') {
@@ -370,9 +372,9 @@ Describe 'Script entry point, tenant scope, and CSV output' {
                 }
             } else {
                 if ($Path -match 'metricnames=Ingress') {
-                    $body = New-TestMetric Ingress 1073741824
+                    $body = Get-TestMetric Ingress 1073741824
                 } else {
-                    $body = New-TestMetric Transactions 0
+                    $body = Get-TestMetric Transactions 0
                 }
             }
             [pscustomobject]@{
@@ -401,8 +403,8 @@ Describe 'Script entry point, tenant scope, and CSV output' {
         Should -Invoke Set-AzContext -Times 1 -Exactly -ParameterFilter {
             $PesterBoundParameters.ContainsKey('Context')
         }
-        Should -Invoke Write-Host -Times 1 -Exactly -ParameterFilter {
-            $Object -like 'Estimated monthly cost: 2567.95.*'
+        Should -Invoke Write-Information -Times 1 -Exactly -ParameterFilter {
+            $MessageData -like 'Estimated monthly cost: 2567.95.*'
         }
     }
 
@@ -432,7 +434,7 @@ Describe 'Script entry point, tenant scope, and CSV output' {
         Mock Invoke-AzRestMethod {
             [pscustomobject]@{
                 StatusCode = 200
-                Content = (New-TestMetric Ingress $null | ConvertTo-Json -Depth 20 -Compress)
+                Content = (Get-TestMetric Ingress $null | ConvertTo-Json -Depth 20 -Compress)
             }
         } -ParameterFilter { $Path -match 'metricnames=Ingress' }
         $csv = Join-Path $TestDrive 'incomplete.csv'

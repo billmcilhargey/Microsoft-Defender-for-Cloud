@@ -56,7 +56,7 @@ function Get-StorageAccountCostEstimate {
     param($Account, $Context, $Configuration)
 
     function Get-MetricTotal {
-        param([string]$Service, [string]$MetricName, [string[]]$ApiNames)
+        param([string]$Service, [string]$MetricName, [string[]]$ApiNames, $MetricContext)
 
         $timespan = [uri]::EscapeDataString(
             "$($Configuration.StartTimeUtc.ToString('o'))/$($Configuration.EndTimeUtc.ToString('o'))"
@@ -70,7 +70,7 @@ function Get-StorageAccountCostEstimate {
             $path += '&$filter=' + [uri]::EscapeDataString($filter)
         }
 
-        $response = Invoke-StorageEstimationGet -Path $path -Context $Context
+        $response = Invoke-StorageEstimationGet -Path $path -Context $MetricContext
         $metrics = @($response.value | Where-Object { $_.name.value -eq $MetricName })
         if ($metrics.Count -ne 1) {
             throw "Expected one $MetricName metric for $($Account.id)/$Service."
@@ -113,7 +113,7 @@ function Get-StorageAccountCostEstimate {
             ($service -eq 'fileServices' -and -not $hasFile)) {
             continue
         }
-        $transactions = Get-MetricTotal -Service $service -MetricName Transactions
+        $transactions = Get-MetricTotal -Service $service -MetricName Transactions -MetricContext $Context
         if ($null -eq $transactions) {
             $hasTransactionData = $false
         } else {
@@ -145,7 +145,7 @@ function Get-StorageAccountCostEstimate {
             'PutBlob', 'CopyBlob', 'PutBlock', 'PutBlockFromURL',
             'AppendFile', 'FlushFile', 'CreatePathFile'
         )
-        $ingress = Get-MetricTotal -Service blobServices -MetricName Ingress -ApiNames $uploadApis
+        $ingress = Get-MetricTotal -Service blobServices -MetricName Ingress -ApiNames $uploadApis -MetricContext $Context
         if ($null -eq $ingress) {
             $monthlyIngressGB = $null
             $billableGB = $null
@@ -245,7 +245,7 @@ try {
             $nextPath = $page.nextLink
         }
 
-        Write-Host "Estimating $($accounts.Count) accounts in subscription $($subscription.Id)."
+        Write-Information "Estimating $($accounts.Count) accounts in subscription $($subscription.Id)." -InformationAction Continue
         if ($ThrottleLimit -eq 1) {
             $estimates = @($accounts | ForEach-Object {
                 Get-StorageAccountCostEstimate -Account $_ -Context $context -Configuration $configuration
@@ -285,6 +285,6 @@ foreach ($row in $ordered) {
 if ($incomplete.Count -gt 0) {
     Write-Warning "$($incomplete.Count) accounts have missing metrics. The known-cost subtotal is $total; a complete scoped total is unavailable."
 } else {
-    Write-Host "Estimated monthly cost: $total. Exported $($ordered.Count) accounts to $OutputPath."
+    Write-Information "Estimated monthly cost: $total. Exported $($ordered.Count) accounts to $OutputPath." -InformationAction Continue
 }
 $ordered

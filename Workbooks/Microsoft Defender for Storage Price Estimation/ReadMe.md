@@ -36,7 +36,11 @@ The pasted content starts with `"version": "Notebook/1.0"`, not `"contentVersion
 
 If clipboard access is unavailable, replace the last command with `$workbookJson | Set-Content -LiteralPath .\Workbook.import.json -Encoding utf8`, then copy that generated file's contents. This is a local extraction, not a second maintained JSON source.
 
-The template uses the HTTPS [ARM resource-group schema](https://learn.microsoft.com/azure/azure-resource-manager/templates/syntax) `2019-04-01` and [workbook API](https://learn.microsoft.com/azure/templates/microsoft.insights/workbooks) `2023-06-01`. The workbook content format remains `Notebook/1.0`. **No schema request service available (768)** is an embedded-editor schema-fetch limitation, not evidence that the deployment JSON is malformed; changing the schema URL does not add that service.
+The template uses the HTTPS [ARM resource-group schema](https://learn.microsoft.com/azure/azure-resource-manager/templates/syntax) `2019-04-01`
+and [workbook API](https://learn.microsoft.com/azure/templates/microsoft.insights/workbooks) `2023-06-01`.
+The workbook content format remains `Notebook/1.0`.
+**No schema request service available (768)** is an embedded-editor schema-fetch limitation, not evidence that the deployment JSON is malformed;
+changing the schema URL does not add that service.
 
 ## PowerShell estimation at scale
 
@@ -67,9 +71,15 @@ By default, the script samples seven days and projects to 30 days, like the work
 
 ### Model and limitations
 
-- The defaults match the workbook: USD 10/account/month, USD 0.1492 per million transactions above 73 million/account/month, and USD 0.15 per GB of estimated malware scanning. Override `-CostPerStorageAccount`, `-PricePer1MOverageTransactions`, and `-MalwareScanningPricePerGB` for your agreement. Check [current pricing](https://azure.microsoft.com/pricing/details/defender-for-cloud/); estimates are not a bill or a price quote.
+- The defaults match the workbook: USD 10/account/month, USD 0.1492 per million transactions above 73 million/account/month,
+  and USD 0.15 per GB of estimated malware scanning.
+  Override `-CostPerStorageAccount`, `-PricePer1MOverageTransactions`, and `-MalwareScanningPricePerGB` for your agreement.
+  Check [current pricing](https://azure.microsoft.com/pricing/details/defender-for-cloud/); estimates are not a bill or a price quote.
 - Transactions include Blob and File services where those endpoints exist. Malware scanning uses only upload-related **Blob ingress**, not File ingress. The GB conversion is 1,073,741,824 bytes, consistent with the workbook.
-- Ingress is a proxy for scan volume, not a measurement of completed scans. Incremental uploads, repeated commits, server-side copies, scan exclusions, and unsupported blobs can change actual charges. On-demand scanning and additional Storage read, blob-index, and Event Grid charges are not included in the script. See [on-upload scanning behavior](https://learn.microsoft.com/azure/defender-for-cloud/on-upload-malware-scanning).
+- Ingress is a proxy for scan volume, not a measurement of completed scans.
+  Incremental uploads, repeated commits, server-side copies, scan exclusions, and unsupported blobs can change actual charges.
+  On-demand scanning and additional Storage read, blob-index, and Event Grid charges are not included in the script.
+  See [on-upload scanning behavior](https://learn.microsoft.com/azure/defender-for-cloud/on-upload-malware-scanning).
 - Scanning is uncapped in the model by default (`-MalwareScanningCapGB -1`). An explicit cap models that limit; it does not read or change configured Defender settings. File-only accounts have no Blob malware-scanning charge.
 - `StorageAccountCost` contains the base plan plus overage. `MalwareScanningCost` is separate, and `EstimatedMonthlyCost` includes both. `OldEstimateCost` retains the legacy per-transaction comparison.
 - Missing metric observations produce warnings, blank affected cost fields, and `MetricsStatus=Incomplete`, not zero-cost estimates. A subtotal must not be interpreted as a complete scope total when any account is incomplete. HTTP/authentication failures stop the run without exporting a new completed report.

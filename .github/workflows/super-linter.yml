@@ -21,9 +21,18 @@ jobs:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
 
+      - name: Checkout ARM-TTK
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Azure/arm-ttk
+          ref: 0ec9a41a4503e970a0ec8efb0cd08415cc172175 # 20260213
+          path: .github/arm-ttk
+          persist-credentials: false
+
       - name: Lint Code Base
         uses: github/super-linter@985ef206aaca4d560cb9ee2af2b42ba44adc1d55 # v4.10.0
         env:
+          ARM_TTK_PSD1: /github/workspace/.github/arm-ttk/arm-ttk/arm-ttk.psd1
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
