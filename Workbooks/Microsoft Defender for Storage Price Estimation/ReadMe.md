@@ -44,11 +44,15 @@ changing the schema URL does not add that service.
 
 ## PowerShell estimation at scale
 
-Use the colocated [DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1](DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1) when the workbook's metrics limits make a large scope impractical. It follows storage-account pagination, processes accounts with bounded parallelism, and includes **on-upload malware-scanning estimates**.
+Use [DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1](../../Powershell%20scripts/Storage%20Price%20Estimation%20Script/DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1)
+when the workbook's metrics limits make a large scope impractical.
+It follows storage-account pagination, processes accounts with bounded parallelism, and includes **on-upload malware-scanning estimates**.
 
 ### Prerequisites and usage
 
 Use PowerShell 7 or later, the `Az.Accounts` module, and a signed-in Azure context. Reader access to subscriptions, storage accounts, and Azure Monitor metrics is required. The script makes read-only ARM requests and does not change Defender settings.
+
+Download the script, then run these examples from its [original script directory](../../Powershell%20scripts/Storage%20Price%20Estimation%20Script/).
 
 ```powershell
 Install-Module Az.Accounts -Scope CurrentUser
@@ -83,16 +87,6 @@ By default, the script samples seven days and projects to 30 days, like the work
 - Scanning is uncapped in the model by default (`-MalwareScanningCapGB -1`). An explicit cap models that limit; it does not read or change configured Defender settings. File-only accounts have no Blob malware-scanning charge.
 - `StorageAccountCost` contains the base plan plus overage. `MalwareScanningCost` is separate, and `EstimatedMonthlyCost` includes both. `OldEstimateCost` retains the legacy per-transaction comparison.
 - Missing metric observations produce warnings, blank affected cost fields, and `MetricsStatus=Incomplete`, not zero-cost estimates. A subtotal must not be interpreted as a complete scope total when any account is incomplete. HTTP/authentication failures stop the run without exporting a new completed report.
-
-### Tests
-
-From this directory, with Pester 5 or later installed:
-
-```powershell
-Invoke-Pester -Path .\tests\StoragePriceEstimation.Tests.ps1 -Output Detailed
-```
-
-Tests cover the workbook schema and extraction instructions, costs and caps, pagination beyond 250 accounts, subscription selection, CSV output, missing metrics, HTTP failures, and the parallel script entry point using deterministic Azure-response fixtures. These tests do not authenticate to Azure or enable scanning.
 
 ## Overview
 

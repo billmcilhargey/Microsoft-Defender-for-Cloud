@@ -47,7 +47,7 @@ These PowerShell scripts allow you to estimate the cost of the new per-storage p
 
 - **D4Storage-PricingEstimation-Per-Storage.ps1** executes in serial across each subscription and storage account whereas D4Storage-PricingEstimation-Per-Storage-Parallel.ps1 iterates over each subscription and storage account in parallel.
 
-- **[DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1)** is now maintained beside the workbook. It estimates the base plan, transaction overage, and on-upload malware scanning with per-account CSV output and bounded parallelism.
+- **[DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1](./DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1)** estimates the base plan, transaction overage, and on-upload malware scanning with per-account CSV output and bounded parallelism.
 
 ### get-azStorageMetrics.ps1
 
@@ -86,6 +86,6 @@ This script will get estimated metrics on Azure Storage V2 Accounts to help esti
 
 ### DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1
 
-The maintained script and its tests have moved to the [Microsoft Defender for Storage Price Estimation workbook directory](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation).
+The [PowerShell estimator](./DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1) is maintained in this directory.
 
-Use the [current prerequisites, examples, CSV fields, and model limitations](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/ReadMe.md#powershell-estimation-at-scale) rather than the previous script instructions. No duplicate script is kept here.
+See the [workbook README](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/ReadMe.md#powershell-estimation-at-scale) for current prerequisites, examples, CSV fields, and model limitations.
