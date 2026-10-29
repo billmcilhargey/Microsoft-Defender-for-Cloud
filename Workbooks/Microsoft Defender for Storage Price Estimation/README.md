@@ -85,6 +85,7 @@ Check [current pricing](https://azure.microsoft.com/pricing/details/defender-for
 - The script excludes on-demand scanning and additional Storage read, blob-index, and Event Grid charges.
   See [scanning behavior](https://learn.microsoft.com/azure/defender-for-cloud/on-upload-malware-scanning).
 - The workbook's **Malware scanning cap (GB/month)** is measured in gigabytes per month per storage account.
+- **Estimated monthly uploaded** uses automatically scaled byte units (such as MB, GB, or TB). The GB-based malware-scanning cost calculation is unchanged.
 - Scanning is modeled as uncapped by default (`-MalwareScanningCapGB -1`). Setting a cap changes the estimate, not Azure settings.
 - Missing metrics produce warnings, blank affected costs, and `MetricsStatus=Incomplete`. Such subtotals are **not complete scope totals**.
   HTTP/authentication failures stop the script without exporting a new report.
