@@ -1,4 +1,6 @@
-# Microsoft Defender for Storage - Price Estimation Workbook v4.2
+# Microsoft Defender for Storage - Price Estimation
+
+**Version 4.2**
 
 Estimate **30-day costs from seven days of usage** for Defender for Storage and on-upload malware scanning, including accounts where protection is not yet enabled.
 
@@ -35,6 +37,8 @@ Creating or importing this workbook does not enable paid Defender plans or scann
 1. Select the button, sign in, and choose a subscription, resource group, and region.
 2. Keep `workbookSourceId` as `azure security center`, then select **Review + create > Create**.
 3. Open the saved workbook under **Microsoft Defender for Cloud > Workbooks** and select your scope.
+
+Importing JSON does not rename an existing saved workbook; update its saved name separately.
 
 **Permissions:** workbook deployment/write access to the resource group, plus read access to selected subscriptions, storage accounts, and metrics.
 

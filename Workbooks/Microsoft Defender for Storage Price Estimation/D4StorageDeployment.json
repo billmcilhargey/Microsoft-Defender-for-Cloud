@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# Microsoft Defender for Storage - Cost Estimation Workbook (includes malware scanning estimation and associated costs) v4.2"
+        "json": "# Microsoft Defender for Storage - Price Estimation\r\n\r\n**Version 4.2** - Includes malware scanning and associated-cost estimates."
       },
       "name": "text - 3"
     },
