@@ -33,9 +33,17 @@ Display units do not change numeric sorting, totals, or the GB-based scanning-co
 
 ## Deploy to Azure
 
+**PR preview - current v4.2 changes**
+
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fbillmcilhargey%2FMicrosoft-Defender-for-Cloud%2Frefs%2Fheads%2Ffix%2Fstorage-estimator-v4-2%2FWorkbooks%2FMicrosoft%2520Defender%2520for%2520Storage%2520Price%2520Estimation%2FarmTemplate.json" target="_blank">
+  <img src="https://aka.ms/deploytoazurebutton" alt="Deploy PR preview to Azure"/>
+</a>
+
+**Published workbook - available after merge**
+
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FMicrosoft-Defender-for-Cloud%2Frefs%2Fheads%2Fmain%2FWorkbooks%2FMicrosoft%2520Defender%2520for%2520Storage%2520Price%2520Estimation%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton" alt="Deploy to Azure"/></a>
 
-1. Select the button, sign in, and choose a subscription, resource group, and region.
+1. Select the appropriate button, sign in, and choose a subscription, resource group, and region.
 2. Keep `workbookSourceId` as `azure security center`, then select **Review + create > Create**.
 3. Open the saved workbook under **Microsoft Defender for Cloud > Workbooks** and select your scope.
 
@@ -43,7 +51,7 @@ Importing JSON does not rename an existing saved workbook; update its saved name
 
 **Permissions:** workbook deployment/write access to the resource group, plus read access to selected subscriptions, storage accounts, and metrics.
 
-The button uses upstream `main`. To test an unmerged change, upload that branch's [armTemplate.json](./armTemplate.json) through **Deploy a custom template > Build your own template in the editor**.
+The preview button uses this PR's branch; the published button uses upstream `main`. Alternatively, upload [armTemplate.json](./armTemplate.json) through **Deploy a custom template > Build your own template in the editor**.
 
 ## Maintaining the workbook JSON
 
