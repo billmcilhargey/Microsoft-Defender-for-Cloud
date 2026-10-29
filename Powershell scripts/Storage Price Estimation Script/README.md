@@ -10,6 +10,10 @@
       - [Get estimates for all storage accounts in a resource group you specify](#get-estimates-for-all-storage-accounts-in-a-resource-group-you-specify)
       - [Get estimates for a single storage account](#get-estimates-for-a-single-storage-account)
   * [DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1](#defenderforstorage-costestimation-resourcelevelvisibilityps1)
+    + [Requirements](#requirements)
+    + [Run the estimator](#run-the-estimator)
+    + [CSV output](#csv-output)
+    + [Pricing and model limitations](#pricing-and-model-limitations)
 
 > [!NOTE]
 > A new pricing plan is now available for Microsoft Defender for Cloud that charges you according to the number of storage accounts it protects (per-storage account).
@@ -86,6 +90,55 @@ This script will get estimated metrics on Azure Storage V2 Accounts to help esti
 
 ### DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1
 
-The [PowerShell estimator](./DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1) is maintained in this directory.
+Use this [estimator](./DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1) for large scopes or workbook timeouts. It projects a usage sample to a **30-day forecast**, including accounts where protection is not enabled.
+It handles pagination and bounded parallelism without changing Azure resources, and restores your Azure context afterward.
 
-See the [workbook README](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md#powershell-estimation-at-scale) for current prerequisites, examples, CSV fields, and model limitations.
+#### Requirements
+
+Use **PowerShell 7+**, `Az.Accounts`, and Reader access to the selected scope.
+
+#### Run the estimator
+
+Download the script and run from this directory:
+
+```powershell
+Install-Module Az.Accounts -Scope CurrentUser
+Connect-AzAccount -TenantId '<tenant-id>'
+
+# All accessible, enabled subscriptions in the signed-in tenant.
+.\DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1
+
+# Selected subscriptions, a 30-day sample, and a modeled scanning cap.
+.\DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1 `
+    -SubscriptionIds '<subscription-id-1>,<subscription-id-2>' `
+    -SampleDays 30 -ThrottleLimit 5 -MalwareScanningCapGB 10000
+```
+
+The default sample is seven days. `-OutputPath` changes the default `CostEstimation.csv`.
+
+#### CSV output
+
+Output has one row per account, with totals printed separately.
+`StorageAccountCost` is base plus overage; `MalwareScanningCost` is separate; `EstimatedMonthlyCost` includes both. `OldEstimateCost` is the legacy-plan comparison.
+
+Missing metrics produce warnings, blank affected costs, and `MetricsStatus=Incomplete`. Such subtotals are **not complete scope totals**.
+HTTP/authentication failures stop the script without exporting a new report.
+
+#### Pricing and model limitations
+
+| Component | Default estimate (USD) |
+| --- | --- |
+| Base plan | 10/account/month |
+| Transaction overage | 0.1492/million above 73 million/account/month |
+| On-upload scanning | 0.15/GB |
+
+Override `-CostPerStorageAccount`, `-PricePer1MOverageTransactions`, and `-MalwareScanningPricePerGB` for your agreement.
+Check [current pricing](https://azure.microsoft.com/pricing/details/defender-for-cloud/); estimates are not invoices or quotes.
+
+- Transactions cover Blob and File services; scanning uses **Blob upload ingress only** (1 GB = 1,073,741,824 bytes).
+  Ingress is a proxy: repeated commits, copies, exclusions, and unsupported blobs can change actual scan volume.
+- The script excludes on-demand scanning and additional Storage read, blob-index, and Event Grid charges.
+  See [scanning behavior](https://learn.microsoft.com/azure/defender-for-cloud/on-upload-malware-scanning).
+- Scanning is modeled as uncapped by default (`-MalwareScanningCapGB -1`). Setting a cap changes the estimate, not Azure settings.
+
+For manual import or ARM deployment, see the [workbook README](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md).
