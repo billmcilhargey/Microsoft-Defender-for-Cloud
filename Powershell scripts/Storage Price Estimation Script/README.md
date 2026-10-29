@@ -134,9 +134,10 @@ Existing CSV column names and order are retained; the new upload-volume fields a
 | MalwareScanningBillableGB | Modeled scanning volume after the optional cap, not measured or invoiced GB. |
 
 Use numeric byte/GB values, not the display string, for sorting and totals. Applying a scanning cap does not reduce the reported upload forecast.
-Missing upload metrics leave both new volume fields blank, not `0 B`.
+Missing or incomplete upload metrics leave both new volume fields blank, not `0 B`.
 
 Missing metrics produce warnings, blank affected costs, and `MetricsStatus=Incomplete`. Such subtotals are **not complete scope totals**.
+Any returned empty series or missing/null total makes that entire metric unavailable, even when other observations contain numeric totals. Partial sums are not projected as complete estimates; numeric zero totals remain valid observations.
 HTTP/authentication failures stop the script without exporting a new report.
 
 #### Pricing and model limitations

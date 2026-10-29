@@ -76,6 +76,7 @@ The preview button uses this PR's branch; the published button uses upstream `ma
 ## Maintaining the workbook JSON
 
 Keep the standalone workbook JSON identical to `resources[0].properties.serializedData` in the ARM template when editing.
+The two-file layout is intentional: retain the paste-ready workbook and separate ARM template so manual import never requires extracting `serializedData`.
 
 ## PowerShell estimation at scale
 
@@ -112,5 +113,5 @@ Until corrected, treat affected costs as **Not calculated**, not zero, and relat
 
 | Version | Changes |
 | --- | --- |
-| 4.3 | Split the cost views into **Storage & scanning costs** and **Scanning associated costs**. Kept one shared activity source and deferred the blob-count source and associated-cost table until their tab first opens. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. |
+| 4.3 | Split the cost views into **Storage & scanning costs** and **Scanning associated costs**. Kept one shared activity source and deferred the blob-count source and associated-cost table until their tab first opens. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. |
 | 4.2 | Added paste-ready workbook JSON and a separate ARM deployment template, clearer count and size units, consistent USD cost formatting and headings, explicit trial statuses, and the PowerShell estimator workflow. Corrected the matrix-producing read-operation formulas and explained calculation errors, incomplete totals, and zero-display caveats. |

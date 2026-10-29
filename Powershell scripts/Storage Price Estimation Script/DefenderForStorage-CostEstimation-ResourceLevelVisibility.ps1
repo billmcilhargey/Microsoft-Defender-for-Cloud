@@ -114,8 +114,12 @@ function Get-StorageAccountCostEstimate {
         }
 
         $hasData = $false
+        $hasMissingData = $false
         $total = [decimal]0
         foreach ($series in $metric.timeseries) {
+            if ($null -eq $series.data -or @($series.data).Count -eq 0) {
+                $hasMissingData = $true
+            }
             foreach ($point in $series.data) {
                 if ($null -ne $point.total) {
                     if ($point.total -lt 0) {
@@ -123,11 +127,13 @@ function Get-StorageAccountCostEstimate {
                     }
                     $total += [decimal]$point.total
                     $hasData = $true
+                } else {
+                    $hasMissingData = $true
                 }
             }
         }
-        if (-not $hasData) {
-            Write-Warning "No $MetricName data for $($Account.id)/$Service; the affected estimate is unknown, not zero."
+        if (-not $hasData -or $hasMissingData) {
+            Write-Warning "Missing or incomplete $MetricName data for $($Account.id)/$Service; the affected estimate is unknown, not zero."
             return $null
         }
         return $total
