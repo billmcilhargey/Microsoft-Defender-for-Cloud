@@ -1124,7 +1124,7 @@
                 {
                   "type": 1,
                   "content": {
-                    "json": "### 🐞 Scanning costs\r\n\r\nAdditional Event Grid, read-operation, and index-tag estimates use the seven-day sample. The monthly on-upload malware-scanning estimate remains on the **Storage costs** tab. The additional blob-count query and this table load when this tab first opens. These associated costs are not included in the monthly estimates."
+                    "json": "### 🐞 Scanning costs\r\n\r\nEvent Grid, read-operation, and index-tag estimates use the seven-day sample. Monthly estimates for activity monitoring and on-upload malware scanning are on the **Storage costs** tab."
                   },
                   "name": "text - 7"
                 },
