@@ -44,6 +44,10 @@ or cost calculations.
 
 This directory contains only those two JSON files and this README.
 
+**Current PR preview:** [Download the complete, latest workbook JSON](https://raw.githubusercontent.com/billmcilhargey/Microsoft-Defender-for-Cloud/refs/heads/feat/defender-apis-cost-workbook/Workbooks/Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/D4ApisDeployment.json).
+This link follows the APIs PR branch until publication; the relative workbook
+link above follows whichever repository revision you are viewing.
+
 ## Manual import with the Advanced Editor
 
 1. Open [D4ApisDeployment.json](./D4ApisDeployment.json), select **Raw**, and copy
@@ -198,6 +202,40 @@ Local schema, KQL-parser and calculation checks do not replace a live Azure
 portal import or verification of actual telemetry in an approved environment.
 
 ## Troubleshooting
+
+### Coverage query errors in an older saved workbook
+
+If the page still has **Defender for APIs coverage / Cost estimation** tabs, or the
+query title is **Current subscription settings and reported onboarding coverage**,
+it is an earlier workbook revision, not this one-page v1.5 layout.
+The early coverage query depended on ARM parameter values. The current coverage
+query uses Resource Graph directly and does not require an APIM selection or ARM
+parameter values.
+
+Replace the saved workbook's entire template:
+
+1. Download the [complete current PR workbook JSON](https://raw.githubusercontent.com/billmcilhargey/Microsoft-Defender-for-Cloud/refs/heads/feat/defender-apis-cost-workbook/Workbooks/Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/D4ApisDeployment.json).
+   Copy **all** of it, including the final closing braces. In an editor, use
+   **Ctrl+A**, not an old partial selection.
+2. In the portal, choose **Edit > Advanced Editor > Workbook Template**
+   (**Gallery Template** in some versions). Select all existing contents and
+   replace them; do not append the new JSON or paste the ARM deployment template.
+3. Select **Apply > Done Editing**. Confirm that the header says **Version 1.5**
+   and that there are **no coverage/cost tabs**, then **Save**.
+4. If the editor rejects the JSON, the old workbook remains active. Check for an
+   incomplete copy and repeat with the full downloaded file.
+
+The current coverage query was executed successfully against Azure Resource Graph
+on 2026-10-29 and returned subscription rows with the expected columns in an
+accessible validation scope. That is not verification of a different tenant's
+permissions, APIM metrics, or the saved portal copy.
+
+If the error persists in the confirmed current revision, capture the complete
+expanded error details and the rendered Resource Graph query. A timestamp and
+correlation ID alone do not identify the query failure; also verify read access
+to the selected subscriptions. Do not convert a failed query into zero coverage.
+
+### Requests Timeline displays a raw array
 
 If **Requests Timeline** displays an array such as `[8,30,17,...]`, the timeline
 column is using a plain-cell renderer instead of being hidden. This is a grid
