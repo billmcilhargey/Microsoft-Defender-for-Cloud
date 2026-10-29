@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# Microsoft Defender for Storage - Price Estimation\r\n\r\n**Version 4.3** - Separate views for coverage, monthly storage and malware-scanning costs, and scanning-associated estimates.\r\n\r\n[Workbook guide and version history on GitHub](https://github.com/Azure/Microsoft-Defender-for-Cloud/tree/main/Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation#readme)"
+        "json": "# Microsoft Defender for Storage - Price Estimation\r\n\r\n**Version 4.3** - Separate views for coverage, storage costs, and scanning costs.\r\n\r\n[Workbook guide and version history on GitHub](https://github.com/Azure/Microsoft-Defender-for-Cloud/tree/main/Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation#readme)"
       },
       "name": "text - 3"
     },
@@ -116,7 +116,7 @@
             "id": "9a8a9b40-f9e0-4963-892c-67ee3e6d4801",
             "cellValue": "SelectedView",
             "linkTarget": "parameter",
-            "linkLabel": "Storage & scanning costs",
+            "linkLabel": "Storage costs",
             "subTarget": "Storage",
             "style": "link"
           },
@@ -124,7 +124,7 @@
             "id": "cf8df7c3-ddb7-419d-8160-ff34a8cd0c0f",
             "cellValue": "SelectedView",
             "linkTarget": "parameter",
-            "linkLabel": "Scanning associated costs",
+            "linkLabel": "Scanning costs",
             "subTarget": "AssociatedCosts",
             "style": "link"
           }
@@ -599,7 +599,7 @@
                 {
                   "type": 1,
                   "content": {
-                    "json": "### 🧮 Storage and malware scanning cost estimates\r\n\r\nMonthly estimates for activity monitoring and on-upload malware scanning. Event Grid, read-operation, and index-tag estimates are on the **Scanning associated costs** tab."
+                    "json": "### 🧮 Storage costs\r\n\r\nMonthly estimates for activity monitoring and on-upload malware scanning. Additional Event Grid, read-operation, and index-tag estimates are on the **Scanning costs** tab."
                   },
                   "name": "text - 10"
                 },
@@ -982,7 +982,7 @@
               "comparison": "isEqualTo",
               "value": "Storage"
             },
-            "name": "Storage and scanning costs"
+            "name": "Storage costs"
           },
           {
             "type": 12,
@@ -1124,7 +1124,7 @@
                 {
                   "type": 1,
                   "content": {
-                    "json": "### 🐞 Malware scanning associated-cost estimates\r\n\r\nEvent Grid, read-operation, and index-tag estimates use the seven-day sample. The additional blob-count query and this table load when this tab first opens. These associated costs are not included in the monthly estimates on the **Storage & scanning costs** tab."
+                    "json": "### 🐞 Scanning costs\r\n\r\nAdditional Event Grid, read-operation, and index-tag estimates use the seven-day sample. The monthly on-upload malware-scanning estimate remains on the **Storage costs** tab. The additional blob-count query and this table load when this tab first opens. These associated costs are not included in the monthly estimates."
                   },
                   "name": "text - 7"
                 },
@@ -1285,7 +1285,7 @@
               "comparison": "isEqualTo",
               "value": "AssociatedCosts"
             },
-            "name": "Scanning associated costs"
+            "name": "Scanning costs"
           }
         ],
         "loadType": "lazy"

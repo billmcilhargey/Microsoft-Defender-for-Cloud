@@ -12,8 +12,10 @@ Creating or importing this workbook does not enable paid Defender plans or scann
 | Tab | Contents |
 | --- | --- |
 | Defender for Storage coverage | Subscription coverage, plan status, and scanning settings. |
-| Storage & scanning costs | Monthly activity-monitoring and on-upload malware-scanning estimates. |
-| Scanning associated costs | Event Grid, read-operation, and index-tag estimates from the seven-day sample. |
+| Storage costs | Monthly activity-monitoring and on-upload malware-scanning estimates. |
+| Scanning costs | Additional Event Grid, read-operation, and index-tag estimates from the seven-day sample. |
+
+**Scanning costs** contains associated-charge details; the monthly on-upload malware-scanning estimate remains in **Storage costs**.
 
 ### Loading and shared data
 
@@ -21,8 +23,8 @@ The cost views share the same selected subscriptions, storage accounts, time ran
 Cost groups wait for a nonempty subscription and storage-account selection before loading.
 
 - **Defender for Storage coverage** does not initialize the cost-view metric sources.
-- **Storage & scanning costs** loads the monthly estimates without creating the associated-cost table or its additional blob-count metric source.
-- **Scanning associated costs** is a separate lazy-loaded group. Its blob-count query, merge, and table are created when that tab first opens, using the shared activity data.
+- **Storage costs** loads the monthly estimates without creating the associated-cost table or its additional blob-count metric source.
+- **Scanning costs** is a separate lazy-loaded group. Its blob-count query, merge, and table are created when that tab first opens, using the shared activity data.
 
 This reduces initial query and table work, not the underlying scope of the shared activity query. Once opened, groups can remain loaded; later scope changes can refresh previously opened views, and metric reuse depends on portal caching. Large selections can still time out.
 
@@ -121,5 +123,5 @@ The scientific value `5e-7` by itself is only **$0.0000005**, not a large cost. 
 
 | Version | Changes |
 | --- | --- |
-| 4.3 | Split the cost views into **Storage & scanning costs** and **Scanning associated costs**. Kept one shared activity source and deferred the blob-count source and associated-cost table until their tab first opens. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. Kept associated-cost results numeric before aggregation and standardized USD formatting to 2-7 decimals to prevent concatenated totals and expose sub-cent amounts clearly. |
+| 4.3 | Split the cost views into **Storage costs** and **Scanning costs**. Kept one shared activity source and deferred the blob-count source and associated-cost table until their tab first opens. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. Kept associated-cost results numeric before aggregation and standardized USD formatting to 2-7 decimals to prevent concatenated totals and expose sub-cent amounts clearly. |
 | 4.2 | Added paste-ready workbook JSON and a separate ARM deployment template, clearer count and size units, consistent USD cost formatting and headings, explicit trial statuses, and the PowerShell estimator workflow. Corrected the matrix-producing read-operation formulas and explained calculation errors, incomplete totals, and zero-display caveats. |
