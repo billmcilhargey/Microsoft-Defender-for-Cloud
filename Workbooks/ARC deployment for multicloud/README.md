@@ -33,7 +33,10 @@ It is still included in **All Arc servers**, regardless of its physical hosting 
 If its cloud-provider metadata reports AWS or GCP, it also appears in that tab; otherwise it appears in **Other cloud / on-premises**, with **Unknown** shown when metadata is missing.
 An EC2-style name alone is not reliable proof that a server runs in AWS.
 
-The discovery tables show assessment-backed EC2/GCP compute records and preserve records even when their display name is missing or they have only one assessment. Names fall back to the resource-details name, native resource ID, and Azure resource ID.
+The discovery tables show assessment-backed EC2/GCP compute records and preserve records even when their display name is missing or they have only one assessment.
+Name sources are aggregated separately before applying fallback precedence: reported display name, resource-details name, native resource ID, then Azure resource ID.
+An unnamed assessment cannot replace another assessment's reported name with a fallback ID.
+Native cloud identities are kept separate from Azure resource IDs, so account/project filtering and Azure resource links use the Azure identity.
 
 **ArcMatch is only a matching hint.**
 Possible matches compare the discovered name with the Arc resource name, computer name, and FQDN, case-insensitively and within the same Azure subscription.
