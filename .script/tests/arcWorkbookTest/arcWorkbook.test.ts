@@ -31,7 +31,6 @@ interface WorkbookItem {
 
 interface Workbook {
   items: WorkbookItem[];
-  fallbackResourceIds: string[];
 }
 
 const directory = path.resolve("Workbooks", "ARC deployment for multicloud");
@@ -49,7 +48,21 @@ describe("Azure Arc server inventory workbook", () => {
     expect(JSON.parse(template.resources[0].properties.serializedData)).to.deep.equal(workbook);
     expect(template.parameters.workbookDisplayName.defaultValue)
       .to.equal("Azure Arc Connected Servers - Multicloud and Hybrid Inventory");
-    expect(workbook.fallbackResourceIds).to.deep.equal([]);
+    expect(workbook).not.to.have.property("fallbackResourceIds");
+  });
+
+  it("uses an HTTPS ARM schema and parameterized location while preserving the default region", () => {
+    expect(template.$schema).to.equal("https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#");
+    expect(template.parameters.location.type).to.equal("string");
+    expect(template.parameters.location.defaultValue).to.equal("[resourceGroup().location]");
+    expect(template.resources[0].location).to.equal("[parameters('location')]");
+  });
+
+  it("keeps README lines within the CI Markdown line-length limit", () => {
+    const lines = fs.readFileSync(path.join(directory, "README.md"), "utf8").split(/\r?\n/);
+    for (const [index, line] of lines.entries()) {
+      expect(line.length, "README line " + (index + 1)).to.be.at.most(400);
+    }
   });
 
   it("opens on the complete inventory and provides AWS, GCP, and other-environment tabs", () => {

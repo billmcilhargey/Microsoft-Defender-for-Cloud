@@ -28,11 +28,19 @@ Each table has a specific empty-state message. Empty results describe the select
 
 The AWS and GCP Arc lists use the documented [`properties.cloudMetadata.provider`](https://learn.microsoft.com/en-us/javascript/api/@azure/arm-hybridcompute/cloudmetadata) field, normalized for case and surrounding spaces. Resource names, the Azure resource location, and the Defender for Cloud **Environment** label are not used to infer the hosting provider.
 
-A **Machine - Azure Arc** resource can appear under **Azure** in Defender for Cloud inventory because its resource representation is in Azure. It is still included in **All Arc servers**, regardless of its physical hosting environment. If its cloud-provider metadata reports AWS or GCP, it also appears in that tab; otherwise it appears in **Other cloud / on-premises**, with **Unknown** shown when metadata is missing. An EC2-style name alone is not reliable proof that a server runs in AWS.
+A **Machine - Azure Arc** resource can appear under **Azure** in Defender for Cloud inventory because its resource representation is in Azure.
+It is still included in **All Arc servers**, regardless of its physical hosting environment.
+If its cloud-provider metadata reports AWS or GCP, it also appears in that tab; otherwise it appears in **Other cloud / on-premises**, with **Unknown** shown when metadata is missing.
+An EC2-style name alone is not reliable proof that a server runs in AWS.
 
 The discovery tables show assessment-backed EC2/GCP compute records and preserve records even when their display name is missing or they have only one assessment. Names fall back to the resource-details name, native resource ID, and Azure resource ID.
 
-**ArcMatch is only a matching hint.** Possible matches compare the discovered name with the Arc resource name, computer name, and FQDN, case-insensitively and within the same Azure subscription. Arc candidates must report the same provider or have unknown provider metadata. Names can be reused across accounts, projects, regions, or zones, and an Arc resource can be registered in a different subscription. Neither a possible name match nor an unmatched discovery record proves Arc installation or absence. Verify the native instance identity and the linked Arc candidates before acting.
+**ArcMatch is only a matching hint.**
+Possible matches compare the discovered name with the Arc resource name, computer name, and FQDN, case-insensitively and within the same Azure subscription.
+Arc candidates must report the same provider or have unknown provider metadata.
+Names can be reused across accounts, projects, regions, or zones, and an Arc resource can be registered in a different subscription.
+Neither a possible name match nor an unmatched discovery record proves Arc installation or absence.
+Verify the native instance identity and the linked Arc candidates before acting.
 
 This replaces the previous definitive "without Arc deployment" wording: assessment discovery and name-only joins cannot reliably establish absence. The direct Arc inventory is the source of truth for visible Arc resources. "No discovery records" is also not proof that an AWS account or GCP project has no virtual machines; check connector configuration, permissions, and freshness.
 
@@ -40,6 +48,7 @@ This replaces the previous definitive "without Arc deployment" wording: assessme
 
 - To update an existing workbook, open **Edit > Advanced Editor**, replace the Gallery Template JSON with [ArcDepolyment.json](./ArcDepolyment.json), and select **Apply**, then **Save**.
 - To deploy a new workbook, use [armTemplate.json](./armTemplate.json). Its embedded workbook content matches the standalone JSON. The legacy folder and JSON filename are retained for existing links.
+- The deployment `location` parameter defaults to the resource group's Azure region and can be overridden if needed.
 - The template's default saved name is **Azure Arc Connected Servers - Multicloud and Hybrid Inventory**. Existing saved workbooks can be renamed separately when saving.
 
 The existing portal buttons deploy the published version; local changes are available there only after publication:
