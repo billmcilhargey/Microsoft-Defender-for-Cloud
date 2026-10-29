@@ -19,14 +19,12 @@ Creating or importing this workbook does not enable paid Defender plans or scann
 
 ### Loading and shared data
 
+All workbook groups explicitly use `loadType: always`, so their content is created when the workbook opens. Tab selection still controls visibility, but no longer defers group initialization.
+
 The cost views share the same selected subscriptions, storage accounts, time range, and activity-metric source. The activity source is defined once, not duplicated for each tab.
-Cost groups wait for a nonempty subscription and storage-account selection before loading.
+The activity-metric source, blob-count source, and both cost tables initialize upfront. Required scope parameters and the seven-day sample still apply to queries.
 
-- **Defender for Storage coverage** does not initialize the cost-view metric sources.
-- **Storage costs** loads the monthly estimates without creating the associated-cost table or its additional blob-count metric source.
-- **Scanning costs** is a separate lazy-loaded group. Its blob-count query, merge, and table are created when that tab first opens, using the shared activity data.
-
-This reduces initial query and table work, not the underlying scope of the shared activity query. Once opened, groups can remain loaded; later scope changes can refresh previously opened views, and metric reuse depends on portal caching. Large selections can still time out.
+Eager initialization can require more initial work. Scope changes can refresh both cost views, and metric reuse depends on portal caching. Large selections can still time out.
 
 **In trial** shows **Yes** when trial time remains, **No** when the reported remaining time is zero (`PT0S`), and **Unknown** when trial data is unavailable.
 
@@ -123,5 +121,5 @@ The scientific value `5e-7` by itself is only **$0.0000005**, not a large cost. 
 
 | Version | Changes |
 | --- | --- |
-| 4.3 | Split the cost views into **Storage costs** and **Scanning costs**. Kept one shared activity source and deferred the blob-count source and associated-cost table until their tab first opens. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. Kept associated-cost results numeric before aggregation and standardized USD formatting to 2-7 decimals to prevent concatenated totals and expose sub-cent amounts clearly. |
+| 4.3 | Split the cost views into **Storage costs** and **Scanning costs**. Kept one shared activity source. Removed lazy loading: all workbook groups initialize when the workbook opens, while tabs continue to control visibility. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. Kept associated-cost results numeric before aggregation and standardized USD formatting to 2-7 decimals to prevent concatenated totals and expose sub-cent amounts clearly. |
 | 4.2 | Added paste-ready workbook JSON and a separate ARM deployment template, clearer count and size units, consistent USD cost formatting and headings, explicit trial statuses, and the PowerShell estimator workflow. Corrected the matrix-producing read-operation formulas and explained calculation errors, incomplete totals, and zero-display caveats. |

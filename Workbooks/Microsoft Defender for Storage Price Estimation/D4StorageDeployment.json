@@ -296,7 +296,7 @@
             "name": "query - 4"
           }
         ],
-        "loadType": "lazy"
+        "loadType": "always"
       },
       "conditionalVisibilities": [
         {
@@ -560,7 +560,7 @@
             "content": {
               "version": "NotebookGroup/1.0",
               "groupType": "editable",
-              "loadType": "lazy",
+              "loadType": "always",
               "items": [
                 {
                   "type": 9,
@@ -989,7 +989,7 @@
             "content": {
               "version": "NotebookGroup/1.0",
               "groupType": "editable",
-              "loadType": "lazy",
+              "loadType": "always",
               "items": [
                 {
                   "type": 10,
@@ -1288,7 +1288,7 @@
             "name": "Scanning costs"
           }
         ],
-        "loadType": "lazy"
+        "loadType": "always"
       },
       "name": "Cost estimation views",
       "conditionalVisibilities": [
