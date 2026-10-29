@@ -5,7 +5,7 @@
       "type": 1,
       "name": "Introduction",
       "content": {
-        "json": "# Microsoft Defender for APIs - Price Estimation\n\n**Version 1.4** - Subscription coverage, eligible API inventory, 30-day cost estimation and configured-plan optimization.\n\n[Workbook guide on GitHub](https://github.com/Azure/Microsoft-Defender-for-Cloud/tree/main/Workbooks/Microsoft%20Defender%20for%20APIs%20Cost%20Estimation#readme)"
+        "json": "# Microsoft Defender for APIs - Price Estimation\n\n**Version 1.5** - One-page subscription coverage, API inventory, 30-day cost estimation and configured-plan optimization. All sections appear below; there are no separate coverage or cost tabs.\n\n[Workbook guide on GitHub](https://github.com/Azure/Microsoft-Defender-for-Cloud/tree/main/Workbooks/Microsoft%20Defender%20for%20APIs%20Cost%20Estimation#readme)"
       }
     },
     {
@@ -20,12 +20,12 @@
       "type": 1,
       "name": "Scope instructions",
       "content": {
-        "json": "#### Please select the scope\n\nChoose **All subscriptions**, several subscriptions, or one subscription. Choose **All APIM services** (the default), several services, or one service for the live service overview. Full child-API inventory and metric-based cost details require exactly one matching APIM service. The traffic window is the last 30 days; All selections are never substituted into single-resource ARM calls or treated as complete fleet traffic."
+        "json": "#### Please select the scope\n\nChoose **All subscriptions**, several subscriptions, or one subscription. Choose **All APIM services** (the default), several services, or one service for the live service overview. Full child-API inventory and metric-based cost details require exactly one matching APIM service. The traffic window is the last 30 days; All selections are never substituted into single-resource ARM calls or treated as complete fleet traffic.\n\nCoverage, service overview, API details and cost comparisons share this page. Scroll down for details; the existing single-service and data-quality safeguards still apply."
       }
     },
     {
       "type": 9,
-      "name": "Scope and view",
+      "name": "Scope selectors",
       "content": {
         "version": "KqlParameterItem/1.0",
         "parameters": [
@@ -156,17 +156,6 @@
               ],
               "allowCustom": false
             }
-          },
-          {
-            "id": "fa0ed6ab-ad16-9f3d-6363-30583404292c",
-            "version": "KqlParameterItem/1.0",
-            "name": "View",
-            "label": "Workbook view",
-            "type": 2,
-            "isRequired": true,
-            "isHiddenWhenLocked": true,
-            "value": "coverage",
-            "jsonData": "[{\"value\":\"coverage\",\"label\":\"Defender for APIs coverage\",\"selected\":true},{\"value\":\"costs\",\"label\":\"Cost estimation\"}]"
           }
         ],
         "style": "pills"
@@ -264,34 +253,8 @@
       ]
     },
     {
-      "type": 11,
-      "name": "Main menu",
-      "content": {
-        "version": "LinkItem/1.0",
-        "style": "tabs",
-        "links": [
-          {
-            "id": "530bc9e0-ac15-cd6f-f9f8-dcbecc748217",
-            "cellValue": "View",
-            "linkTarget": "parameter",
-            "linkLabel": "Defender for APIs coverage",
-            "subTarget": "coverage",
-            "style": "link"
-          },
-          {
-            "id": "2edbc5ac-dd6c-dbb2-5cf5-7b3111d87fdd",
-            "cellValue": "View",
-            "linkTarget": "parameter",
-            "linkLabel": "Cost estimation",
-            "subTarget": "costs",
-            "style": "link"
-          }
-        ]
-      }
-    },
-    {
       "type": 12,
-      "name": "Coverage tab",
+      "name": "Subscription coverage section",
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
@@ -354,11 +317,6 @@
             }
           }
         ]
-      },
-      "conditionalVisibility": {
-        "parameterName": "View",
-        "comparison": "isEqualTo",
-        "value": "coverage"
       }
     },
     {
@@ -580,16 +538,11 @@
                   }
                 }
               ]
-            },
-            "conditionalVisibility": {
-              "parameterName": "View",
-              "comparison": "isEqualTo",
-              "value": "coverage"
             }
           },
           {
             "type": 12,
-            "name": "Native cost tab",
+            "name": "Cost estimation section",
             "content": {
               "version": "NotebookGroup/1.0",
               "groupType": "editable",
@@ -648,6 +601,14 @@
                               "maximumFractionDigits": 0
                             }
                           }
+                        },
+                        {
+                          "columnMatch": "microsoft.apimanagement/service-Gateway Requests-Requests Timeline",
+                          "formatter": 5
+                        },
+                        {
+                          "columnMatch": "Requests Timeline",
+                          "formatter": 5
                         }
                       ]
                     }
@@ -910,11 +871,6 @@
                   }
                 }
               ]
-            },
-            "conditionalVisibility": {
-              "parameterName": "View",
-              "comparison": "isEqualTo",
-              "value": "costs"
             }
           },
           {
@@ -948,11 +904,6 @@
                   }
                 }
               ]
-            },
-            "conditionalVisibility": {
-              "parameterName": "View",
-              "comparison": "isEqualTo",
-              "value": "costs"
             }
           }
         ]
@@ -1022,11 +973,6 @@
           }
         ],
         "style": "pills"
-      },
-      "conditionalVisibility": {
-        "parameterName": "View",
-        "comparison": "isEqualTo",
-        "value": "costs"
       }
     },
     {
@@ -1216,11 +1162,6 @@
       },
       "conditionalVisibilities": [
         {
-          "parameterName": "View",
-          "comparison": "isEqualTo",
-          "value": "costs"
-        },
-        {
           "parameterName": "Workspace",
           "comparison": "isNotEqualTo",
           "value": "value::none"
@@ -1277,11 +1218,6 @@
             }
           }
         ]
-      },
-      "conditionalVisibility": {
-        "parameterName": "View",
-        "comparison": "isEqualTo",
-        "value": "costs"
       }
     },
     {

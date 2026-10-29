@@ -7,7 +7,8 @@ This project contains **Azure Workbook templates** you can use to create custom 
 ## Defender for APIs cost estimation
 
 The [Defender for APIs cost estimator](./Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/README.md)
-follows the Storage price estimator's scope selectors and coverage/cost tabs.
+uses Storage-style scope selectors with coverage, API inventory and cost
+estimation together on one page.
 Import [D4ApisDeployment.json](./Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/D4ApisDeployment.json)
 directly, or deploy [armTemplate.json](./Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/armTemplate.json).
 All live coverage, API inventory and 30-day plan queries are built in, with optional

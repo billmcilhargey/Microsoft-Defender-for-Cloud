@@ -1,22 +1,29 @@
 # Microsoft Defender for APIs - Price Estimation
 
-**Version 1.4**
+**Version 1.5**
 
 A self-contained, live workbook following the
 [Defender for Storage Price Estimation](../Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md)
-layout: scope selectors, subscription coverage, API coverage details and cost
-estimation.
+scope selectors and native data sources, with subscription coverage, API details
+and cost estimation together on **one continuous page**. There are no separate
+coverage or cost tabs; scroll down to see the available sections.
 
 All queries and calculations are **embedded in the workbook JSON**. No PowerShell,
 build step, uploaded snapshot or custom ingestion is required. Creating or
 importing this workbook does not enable a paid plan or onboard APIs.
 
-## Views
+## Single-page layout
 
-| Tab | Contents |
+| Section | Contents |
 | --- | --- |
 | Defender for APIs coverage | All, several or one subscription: enablement, configured P1-P5 plan, trial status and reported onboarding assessments. All/several APIM services show a live service overview; a single matching service also enables full API inventory. |
-| Cost estimation | Service overview for the selected APIM scope. A single matching service enables native Azure Monitor request metrics, five-plan costs including overages, rollout/current-coverage recommendations and modeled savings. Includes an optional subscription-wide log comparison. |
+| APIM service overview | Services matching the All/several/one service scope, with tiers, regions and reported API assessments. |
+| API coverage details | Full child-API inventory and eligibility/protection totals when exactly one APIM service is resolved. |
+| Cost estimation | Native Azure Monitor request totals, five-plan costs including overages, rollout/current-coverage recommendations and modeled savings, on the same page as coverage. |
+| Optional log comparison and data quality | Existing subscription-wide log model, scope assumptions and evidence behind calculated or withheld recommendations. |
+
+Sections requiring a single service or an optional workspace remain conditional
+on those selections. Removing tabs does not bypass scope or data-quality guards.
 
 **Enabled** is the subscription setting, not proof that every API is onboarded.
 **In trial** is Yes when reported trial time remains, No for `PT0S`, and Unknown
@@ -24,6 +31,9 @@ when trial data is unavailable.
 
 Costs display as **USD with two decimal places**. Request counts and costs remain
 numeric for sorting and export. Empty cost cells mean **not calculated**, not zero.
+The native metric grid hides the raw **Requests Timeline** array and keeps the
+numeric **Requests (Sum)** total. This display change does not change call counts
+or cost calculations.
 
 ## Workbook files
 
@@ -47,8 +57,8 @@ This directory contains only those two JSON files and this README.
 5. Choose **All APIM services** (the default), several services, or one service.
    The overview lists matching services and their reported API assessments.
 6. For full API inventory and metric-based recommendations, clear All and select
-   **one service**. Its subscription is derived automatically. Switch between
-   **Defender for APIs coverage** and **Cost estimation**.
+   **one service**. Its subscription is derived automatically. Coverage, API
+   inventory and cost sections appear together below; no tab switching is needed.
 
 **No conversion or extraction is required.** Paste the standalone workbook JSON,
 not [armTemplate.json](./armTemplate.json). Use **Refresh** to rerun live queries.
@@ -135,7 +145,7 @@ even though they exceed its one-million-call allowance; P2 would cost USD 700.
 
 For subscriptions with multiple APIM services, these metric-based recommendations
 are withheld rather than treating one instance as the subscription total.
-On **Cost estimation**, select one service to identify the subscription, then
+In the **Cost estimation** section, select one service to identify the subscription, then
 optionally select an existing Log Analytics workspace for the full subscription:
 
 - Requires **Analytics-plan** `ApiManagementGatewayLogs` or legacy
@@ -187,6 +197,16 @@ dependency is needed.
 Local schema, KQL-parser and calculation checks do not replace a live Azure
 portal import or verification of actual telemetry in an approved environment.
 
+## Troubleshooting
+
+If **Requests Timeline** displays an array such as `[8,30,17,...]`, the timeline
+column is using a plain-cell renderer instead of being hidden. This is a grid
+formatting issue, not a Defender finding or a request-total error.
+The workbook hides the native metric-ID timeline column and its display-name
+alias with formatter `5`, matching the Storage workbook's existing pattern.
+Reimport the updated [workbook JSON](./D4ApisDeployment.json), or redeploy
+[armTemplate.json](./armTemplate.json), to update an older saved copy.
+
 ## Optional PowerShell estimation at scale
 
 The [PowerShell estimator](../../Powershell%20scripts/Defender%20APIs%20Cost%20Estimator/d4apis_cost_estimator_v1.ps1)
@@ -196,6 +216,9 @@ ingests its output or requires it for refresh.
 
 ## Version history
 
+- **1.5** - Combined coverage, API inventory and cost sections onto one page;
+  removed tab dependencies and hid the raw Requests Timeline array without
+  changing usage or pricing queries.
 - **1.4** - All/multi-APIM selection and live service overview, with full
   inventory/metrics deferred unless the scope resolves to exactly one service.
 - **1.3** - All/multi-subscription coverage and APIM discovery; derive the detail
