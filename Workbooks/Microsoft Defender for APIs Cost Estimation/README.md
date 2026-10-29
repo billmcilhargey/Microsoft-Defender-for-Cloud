@@ -1,6 +1,6 @@
 # Microsoft Defender for APIs - Price Estimation
 
-**Version 1.2**
+**Version 1.3**
 
 A self-contained, live workbook following the
 [Defender for Storage Price Estimation](../Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md)
@@ -15,7 +15,7 @@ importing this workbook does not enable a paid plan or onboard APIs.
 
 | Tab | Contents |
 | --- | --- |
-| Defender for APIs coverage | Subscription enablement, configured P1-P5 plan, trial status, reported onboarding assessments, and the selected APIM service's eligible API totals and inventory. |
+| Defender for APIs coverage | All, several or one subscription: enablement, configured P1-P5 plan, trial status and reported onboarding assessments. Select an APIM service for its eligible API totals and full inventory. |
 | Cost estimation | Native Azure Monitor request metrics, all five plan costs including overages, separate rollout/current-coverage recommendations, modeled savings and data quality. Includes an optional multi-APIM subscription log comparison. |
 
 **Enabled** is the subscription setting, not proof that every API is onboarded.
@@ -42,7 +42,10 @@ This directory contains only those two JSON files and this README.
    or **Edit > Advanced Editor** on an existing workbook.
 3. Choose **Workbook Template** (**Gallery Template** in some portal versions),
    replace the contents, then select **Apply > Done Editing > Save**.
-4. Select an **Azure subscription** and **APIM service**. Switch between
+4. Choose **All subscriptions**, several subscriptions, or one subscription.
+   The coverage table works without an APIM selection.
+5. Select an **APIM service** for API inventory and cost recommendations. Its
+   subscription is derived automatically. Switch between
    **Defender for APIs coverage** and **Cost estimation**.
 
 **No conversion or extraction is required.** Paste the standalone workbook JSON,
@@ -73,6 +76,9 @@ permission is needed.
 
 Like the Storage workbook, this workbook uses **Azure Resource Graph** for
 coverage and a native **Azure Monitor Metrics** control for request usage.
+**All subscriptions** is the default coverage scope and includes only subscriptions
+you can access. You can also select a subset. Resource Graph's indexed pricing,
+trial and assessment data can lag direct ARM configuration.
 The embedded queries also use:
 
 - **ARM GET/GETARRAY** for the actual API inventory, APIM tier/regions, configured
@@ -85,12 +91,18 @@ The embedded queries also use:
 
 APIM differs from Storage: its API child inventory is not indexed in Resource
 Graph, and APIM metrics cannot use Storage's multi-resource selection pattern.
-The workbook therefore evaluates **one subscription and one APIM service at a
-time**. Its API counts are selected-service counts, not a multi-service fleet total.
+The coverage table evaluates all selected subscriptions, but API details and cost
+models evaluate **one APIM service and its subscription at a time**. The detail
+subscription is derived from the selected APIM resource, not from the All marker
+or a list of subscriptions. ARM requests are deferred until an APIM is selected.
+Its API counts are selected-service counts, not a multi-service fleet total.
 Reported assessment counts are labeled separately because they can lag or omit
 APIs; they are not a replacement for full inventory.
 
 ### Cost recommendations
+
+Selecting All does **not** aggregate cost estimates across subscriptions. The
+optional log comparison also stays within the selected APIM's subscription.
 
 The metric-based comparison is a subscription recommendation only when the
 selected APIM is the subscription's **sole APIM service**. It compares:
@@ -135,6 +147,8 @@ The workbook does not enable diagnostic settings, change retention or ingest log
 - Grids display at most **1,000 rows**. Resource Graph calculations expand at most
   **2,000 raw rows per array**; exceeding the required API, collection or metric
   limit withholds recommendations. Partial counts are labeled as lower bounds.
+  At large subscription scopes, a truncated coverage grid is not a tenant-wide
+  total; narrow the subscription selection.
 - Split API traffic must reconcile to whole-service totals. Missing/null samples,
   read failures, unknown plans, pending onboarding and incomplete required scope
   mean **not calculated**, never zero. Explicit numeric zero samples are valid.
@@ -163,6 +177,8 @@ ingests its output or requires it for refresh.
 
 ## Version history
 
+- **1.3** - All/multi-subscription coverage and APIM discovery; derive the detail
+  subscription from the selected service and defer its ARM queries until selected.
 - **1.2** - Storage-style coverage/cost layout, native metric grid, API coverage
   totals, embedded queries and two-file JSON delivery with README.
 - **1.1** - Native live Azure queries, eligibility-aware plan comparison and optional
