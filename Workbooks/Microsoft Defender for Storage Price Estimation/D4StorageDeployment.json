@@ -270,7 +270,7 @@
                   },
                   {
                     "columnId": "MalwareScanningCapping",
-                    "label": "Malware scanning cap"
+                    "label": "Malware scanning cap (GB/month)"
                   },
                   {
                     "columnId": "SensitiveDataDiscoveryEnabled",
