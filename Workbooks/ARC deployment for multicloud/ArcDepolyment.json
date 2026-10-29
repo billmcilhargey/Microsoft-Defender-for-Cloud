@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# Azure Arc Connected Servers - Multicloud and Hybrid Inventory\r\nInventory Azure Arc-enabled servers across AWS, GCP, other clouds, and on-premises environments. The server lists query `Microsoft.HybridCompute/machines` directly and do not require a Defender for Servers plan or a Defender for Cloud security connector.\r\n\r\n**Scope:** All server lists use the selected Azure subscriptions and your resource read permissions. AWS account and GCP project filters apply only to the Defender for Cloud discovery tables. Connection status is shown as reported by Azure Arc; an Arc resource can exist even when its agent is disconnected.\r\n\r\n**Environment:** AWS and GCP are identified by `properties.cloudMetadata.provider`, not by the resource's Azure location, its name, or the environment label in Defender for Cloud inventory. Other providers and servers with missing provider metadata appear under **Other cloud / on-premises** as well as **All Arc servers**. Unknown metadata does not prove that a server is on-premises."
+        "json": "# Azure Arc Connected Servers - Multicloud and Hybrid Inventory\r\nInventory Azure Arc-enabled servers across AWS, GCP, other clouds, and on-premises environments. The server lists query `Microsoft.HybridCompute/machines` directly and do not require a Defender for Servers plan or a Defender for Cloud security connector.\r\n\r\n**Scope:** All server lists use the selected Azure subscriptions and your resource read permissions. AWS account and GCP project filters apply only to the Defender for Cloud discovery tables. An Arc resource's presence or **Defender for Cloud: On** does not prove that its agent is connected.\r\n\r\n**Environment:** AWS and GCP are identified by `properties.cloudMetadata.provider`, not by the resource's Azure location, its name, tags such as `AWSPlatformDetails`, or the environment label in Defender for Cloud inventory. Missing provider metadata is displayed as **Environment = Unknown**. These servers remain visible under **Other / unknown** and **All Arc servers**; they are not classified as confirmed on-premises servers.\r\n\r\n**Missing metadata:** **Unknown** in CloudProvider, ConnectionStatus, or OSName means the Arc property is missing or reports an unknown value. It is not proof of agent connectivity, disconnection, or absence. **AgentVersion = Not reported** means no agent version was returned. ComputerName falls back to the Arc resource name when neither a computer name nor an FQDN is reported. Tags do not replace the reported provider or OS fields."
       },
       "name": "textDescriptionOfWorkbook"
     },
@@ -147,7 +147,7 @@
             "id": "42bf4565-317a-4761-a7e4-f923161ce725",
             "cellValue": "SelectedTab",
             "linkTarget": "parameter",
-            "linkLabel": "Other cloud / on-premises",
+            "linkLabel": "Other / unknown",
             "subTarget": "Other",
             "style": "link"
           }
@@ -172,7 +172,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| extend environment = case(provider == 'aws', 'AWS', provider == 'gcp', 'GCP', 'Other cloud / on-premises')\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), Environment = environment, CloudProvider = iff(isempty(provider), 'Unknown', tostring(properties.cloudMetadata.provider)), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = tostring(properties.agentVersion), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
+              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| extend environment = case(provider == 'aws', 'AWS', provider == 'gcp', 'GCP', isempty(provider), 'Unknown', 'Other cloud / on-premises')\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), Environment = environment, CloudProvider = iff(isempty(provider), 'Unknown', tostring(properties.cloudMetadata.provider)), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = coalesce(tostring(properties.agentVersion), 'Not reported'), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
               "size": 0,
               "queryType": 1,
               "resourceType": "microsoft.resourcegraph/resources",
@@ -212,7 +212,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Azure Arc-enabled servers in AWS\r\nThese Arc resources report AWS in their cloud-provider metadata. The AWS account selector does not filter this list. Servers with unknown provider metadata remain visible in **All Arc servers** and **Other cloud / on-premises**."
+              "json": "## Azure Arc-enabled servers in AWS\r\nThese Arc resources report AWS in their cloud-provider metadata. The AWS account selector does not filter this list. Servers with unknown provider metadata remain visible in **All Arc servers** and **Other / unknown**."
             },
             "name": "textDescAWSIncludeArc"
           },
@@ -220,14 +220,14 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| where provider == 'aws'\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), CloudProvider = tostring(properties.cloudMetadata.provider), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = tostring(properties.agentVersion), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
+              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| where provider == 'aws'\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), CloudProvider = tostring(properties.cloudMetadata.provider), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = coalesce(tostring(properties.agentVersion), 'Not reported'), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
               "size": 0,
               "queryType": 1,
               "resourceType": "microsoft.resourcegraph/resources",
               "crossComponentResources": [
                 "{Subscriptions}"
               ],
-              "noDataMessage": "No Azure Arc-enabled servers reporting AWS as their cloud provider were found in the selected subscriptions. Check All Arc servers and Other cloud / on-premises for servers with unknown or different provider metadata.",
+              "noDataMessage": "No Azure Arc-enabled servers reporting AWS as their cloud provider were found in the selected subscriptions. Check All Arc servers and Other / unknown for servers with unknown or different provider metadata.",
               "noDataMessageStyle": 0,
               "showExportToExcel": true,
               "showRefreshButton": true,
@@ -293,7 +293,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Azure Arc-enabled servers in GCP\r\nThese Arc resources report GCP in their cloud-provider metadata. The GCP project selector does not filter this list. Servers with unknown provider metadata remain visible in **All Arc servers** and **Other cloud / on-premises**."
+              "json": "## Azure Arc-enabled servers in GCP\r\nThese Arc resources report GCP in their cloud-provider metadata. The GCP project selector does not filter this list. Servers with unknown provider metadata remain visible in **All Arc servers** and **Other / unknown**."
             },
             "name": "textDescGCPIncludeArc"
           },
@@ -301,14 +301,14 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| where provider == 'gcp'\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), CloudProvider = tostring(properties.cloudMetadata.provider), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = tostring(properties.agentVersion), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
+              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| where provider == 'gcp'\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), CloudProvider = tostring(properties.cloudMetadata.provider), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = coalesce(tostring(properties.agentVersion), 'Not reported'), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
               "size": 0,
               "queryType": 1,
               "resourceType": "microsoft.resourcegraph/resources",
               "crossComponentResources": [
                 "{Subscriptions}"
               ],
-              "noDataMessage": "No Azure Arc-enabled servers reporting GCP as their cloud provider were found in the selected subscriptions. Check All Arc servers and Other cloud / on-premises for servers with unknown or different provider metadata.",
+              "noDataMessage": "No Azure Arc-enabled servers reporting GCP as their cloud provider were found in the selected subscriptions. Check All Arc servers and Other / unknown for servers with unknown or different provider metadata.",
               "noDataMessageStyle": 0,
               "showExportToExcel": true,
               "showRefreshButton": true,
@@ -374,7 +374,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Azure Arc-enabled servers in other clouds and on-premises\r\nIncludes private clouds, datacenters, edge locations, other reported providers, and servers without cloud-provider metadata. **CloudProvider = Unknown** means the hosting environment cannot be determined from the Arc resource; it is not an assertion that the server is on-premises. Azure Arc resources can be labeled **Azure** in Defender for Cloud inventory because they are represented as Azure resources, regardless of where the server runs."
+              "json": "## Azure Arc-enabled servers in other or unknown environments\r\nIncludes private clouds, datacenters, edge locations, other reported providers, and servers without cloud-provider metadata. Missing provider metadata is displayed as **Environment = Unknown** and **CloudProvider = Unknown**, not as a confirmed on-premises location. Azure Arc resources can be labeled **Azure** in Defender for Cloud inventory because they are represented as Azure resources, regardless of where the server runs."
             },
             "name": "textDescOtherArc"
           },
@@ -382,7 +382,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| where provider !in ('aws', 'gcp')\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), CloudProvider = iff(isempty(provider), 'Unknown', tostring(properties.cloudMetadata.provider)), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = tostring(properties.agentVersion), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
+              "query": "Resources\r\n| where type =~ 'microsoft.hybridcompute/machines'\r\n| extend provider = tolower(trim(' ', tostring(properties.cloudMetadata.provider)))\r\n| where provider !in ('aws', 'gcp')\r\n| project Server = name, ComputerName = coalesce(tostring(properties.osProfile.computerName), tostring(properties.machineFqdn), name), Environment = iff(isempty(provider), 'Unknown', 'Other cloud / on-premises'), CloudProvider = iff(isempty(provider), 'Unknown', tostring(properties.cloudMetadata.provider)), ConnectionStatus = coalesce(tostring(properties.status), 'Unknown'), OSName = coalesce(tostring(properties.osName), tostring(properties.osType), 'Unknown'), AgentVersion = coalesce(tostring(properties.agentVersion), 'Not reported'), SubscriptionId = subscriptionId, ResourceGroup = resourceGroup, Location = location, ResourceId = id\r\n| order by Server asc",
               "size": 0,
               "queryType": 1,
               "resourceType": "microsoft.resourcegraph/resources",
