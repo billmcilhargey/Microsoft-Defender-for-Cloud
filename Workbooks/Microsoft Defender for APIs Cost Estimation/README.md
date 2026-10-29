@@ -1,6 +1,6 @@
 # Microsoft Defender for APIs - Price Estimation
 
-**Version 1.3**
+**Version 1.4**
 
 A self-contained, live workbook following the
 [Defender for Storage Price Estimation](../Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md)
@@ -15,8 +15,8 @@ importing this workbook does not enable a paid plan or onboard APIs.
 
 | Tab | Contents |
 | --- | --- |
-| Defender for APIs coverage | All, several or one subscription: enablement, configured P1-P5 plan, trial status and reported onboarding assessments. Select an APIM service for its eligible API totals and full inventory. |
-| Cost estimation | Native Azure Monitor request metrics, all five plan costs including overages, separate rollout/current-coverage recommendations, modeled savings and data quality. Includes an optional multi-APIM subscription log comparison. |
+| Defender for APIs coverage | All, several or one subscription: enablement, configured P1-P5 plan, trial status and reported onboarding assessments. All/several APIM services show a live service overview; a single matching service also enables full API inventory. |
+| Cost estimation | Service overview for the selected APIM scope. A single matching service enables native Azure Monitor request metrics, five-plan costs including overages, rollout/current-coverage recommendations and modeled savings. Includes an optional subscription-wide log comparison. |
 
 **Enabled** is the subscription setting, not proof that every API is onboarded.
 **In trial** is Yes when reported trial time remains, No for `PT0S`, and Unknown
@@ -44,8 +44,10 @@ This directory contains only those two JSON files and this README.
    replace the contents, then select **Apply > Done Editing > Save**.
 4. Choose **All subscriptions**, several subscriptions, or one subscription.
    The coverage table works without an APIM selection.
-5. Select an **APIM service** for API inventory and cost recommendations. Its
-   subscription is derived automatically. Switch between
+5. Choose **All APIM services** (the default), several services, or one service.
+   The overview lists matching services and their reported API assessments.
+6. For full API inventory and metric-based recommendations, clear All and select
+   **one service**. Its subscription is derived automatically. Switch between
    **Defender for APIs coverage** and **Cost estimation**.
 
 **No conversion or extraction is required.** Paste the standalone workbook JSON,
@@ -79,6 +81,10 @@ coverage and a native **Azure Monitor Metrics** control for request usage.
 **All subscriptions** is the default coverage scope and includes only subscriptions
 you can access. You can also select a subset. Resource Graph's indexed pricing,
 trial and assessment data can lag direct ARM configuration.
+**All APIM services** is also a default option. It applies within the selected
+subscriptions, not outside that scope. A live service overview shows the matching
+services, tiers, regions and reported API onboarding assessments. It is not a
+complete child-API inventory.
 The embedded queries also use:
 
 - **ARM GET/GETARRAY** for the actual API inventory, APIM tier/regions, configured
@@ -91,17 +97,29 @@ The embedded queries also use:
 
 APIM differs from Storage: its API child inventory is not indexed in Resource
 Graph, and APIM metrics cannot use Storage's multi-resource selection pattern.
-The coverage table evaluates all selected subscriptions, but API details and cost
-models evaluate **one APIM service and its subscription at a time**. The detail
-subscription is derived from the selected APIM resource, not from the All marker
-or a list of subscriptions. ARM requests are deferred until an APIM is selected.
+The coverage table evaluates all selected subscriptions. The service overview
+follows the APIM selection; subscription coverage still describes entire
+subscriptions rather than a selected APIM subset.
+
+API details and cost models evaluate **one APIM service and its subscription at a
+time**. A hidden resource picker resolves only an exactly-one-service scope;
+All/several selections with multiple matching services leave detail queries
+deferred. An All scope containing only one service can safely resolve that service.
+An independent readiness check also verifies that the resolved resource matches
+that sole service, so a stale picker value cannot start detail requests.
+The detail subscription is derived from the selected APIM resource, not from the All marker
+or a list of subscriptions. No All marker, unresolved first-resource marker or
+resource list is passed to the per-service ARM/Metrics calls.
 Its API counts are selected-service counts, not a multi-service fleet total.
 Reported assessment counts are labeled separately because they can lag or omit
 APIs; they are not a replacement for full inventory.
 
 ### Cost recommendations
 
-Selecting All does **not** aggregate cost estimates across subscriptions. The
+Selecting All APIM services provides the service overview; it does **not**
+enumerate every child API, sum per-service traffic, or generate a fleet-wide
+recommendation. Select one service for the detail view. Selecting All
+subscriptions does **not** aggregate cost estimates across subscriptions. The
 optional log comparison also stays within the selected APIM's subscription.
 
 The metric-based comparison is a subscription recommendation only when the
@@ -117,7 +135,8 @@ even though they exceed its one-million-call allowance; P2 would cost USD 700.
 
 For subscriptions with multiple APIM services, these metric-based recommendations
 are withheld rather than treating one instance as the subscription total.
-On **Cost estimation**, optionally select an existing Log Analytics workspace:
+On **Cost estimation**, select one service to identify the subscription, then
+optionally select an existing Log Analytics workspace for the full subscription:
 
 - Requires **Analytics-plan** `ApiManagementGatewayLogs` or legacy
   `AzureDiagnostics` `GatewayLogs`, not Basic/Auxiliary tables.
@@ -177,6 +196,8 @@ ingests its output or requires it for refresh.
 
 ## Version history
 
+- **1.4** - All/multi-APIM selection and live service overview, with full
+  inventory/metrics deferred unless the scope resolves to exactly one service.
 - **1.3** - All/multi-subscription coverage and APIM discovery; derive the detail
   subscription from the selected service and defer its ARM queries until selected.
 - **1.2** - Storage-style coverage/cost layout, native metric grid, API coverage
