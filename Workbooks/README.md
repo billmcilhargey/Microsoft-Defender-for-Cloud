@@ -4,6 +4,18 @@
 
 This project contains **Azure Workbook templates** you can use to create custom dashboards within Microsoft Defender for Cloud. The workbooks can be deployed as ARM templates to your Defender for Cloud environment.
 
+## Defender for APIs cost estimation
+
+The [Defender for APIs cost estimator](./Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/README.md)
+follows the Storage price estimator's scope selectors and coverage/cost tabs.
+Import [D4ApisDeployment.json](./Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/D4ApisDeployment.json)
+directly, or deploy [armTemplate.json](./Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/armTemplate.json).
+All live coverage, API inventory and 30-day plan queries are built in, with optional
+Log Analytics for multi-service comparisons. No PowerShell, build step or uploaded
+snapshot is required. The
+[PowerShell estimator](../Powershell%20scripts/Defender%20APIs%20Cost%20Estimator/d4apis_cost_estimator_v1.ps1)
+is an independent, optional CSV/JSON reporting tool.
+
 ## Contributing
 
 Anyone can contribute, you don't need to be a pro. You have an interesting query or workbook? Then fork this repo, add your content to your fork and submit a pull request. See our [Contribution Guideline](../Contributing.md) for more details.

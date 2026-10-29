@@ -1,0 +1,176 @@
+# Microsoft Defender for APIs - Price Estimation
+
+**Version 1.2**
+
+A self-contained, live workbook following the
+[Defender for Storage Price Estimation](../Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md)
+layout: scope selectors, subscription coverage, API coverage details and cost
+estimation.
+
+All queries and calculations are **embedded in the workbook JSON**. No PowerShell,
+build step, uploaded snapshot or custom ingestion is required. Creating or
+importing this workbook does not enable a paid plan or onboard APIs.
+
+## Views
+
+| Tab | Contents |
+| --- | --- |
+| Defender for APIs coverage | Subscription enablement, configured P1-P5 plan, trial status, reported onboarding assessments, and the selected APIM service's eligible API totals and inventory. |
+| Cost estimation | Native Azure Monitor request metrics, all five plan costs including overages, separate rollout/current-coverage recommendations, modeled savings and data quality. Includes an optional multi-APIM subscription log comparison. |
+
+**Enabled** is the subscription setting, not proof that every API is onboarded.
+**In trial** is Yes when reported trial time remains, No for `PT0S`, and Unknown
+when trial data is unavailable.
+
+Costs display as **USD with two decimal places**. Request counts and costs remain
+numeric for sorting and export. Empty cost cells mean **not calculated**, not zero.
+
+## Workbook files
+
+| File | Use |
+| --- | --- |
+| [D4ApisDeployment.json](./D4ApisDeployment.json) | Paste-ready workbook JSON with all live queries built in. |
+| [armTemplate.json](./armTemplate.json) | ARM template deploying the same saved workbook. |
+
+This directory contains only those two JSON files and this README.
+
+## Manual import with the Advanced Editor
+
+1. Open [D4ApisDeployment.json](./D4ApisDeployment.json), select **Raw**, and copy
+   the entire JSON.
+2. Open **Microsoft Defender for Cloud > Workbooks > New > Advanced Editor (</>)**,
+   or **Edit > Advanced Editor** on an existing workbook.
+3. Choose **Workbook Template** (**Gallery Template** in some portal versions),
+   replace the contents, then select **Apply > Done Editing > Save**.
+4. Select an **Azure subscription** and **APIM service**. Switch between
+   **Defender for APIs coverage** and **Cost estimation**.
+
+**No conversion or extraction is required.** Paste the standalone workbook JSON,
+not [armTemplate.json](./armTemplate.json). Use **Refresh** to rerun live queries.
+Importing JSON does not rename an existing saved workbook; update its name
+separately.
+
+## Deploy to Azure
+
+1. Open **Deploy a custom template > Build your own template in the editor**.
+2. Load [armTemplate.json](./armTemplate.json) and select **Save**.
+3. Choose a subscription, resource group and region.
+4. Keep `workbookSourceId` as `azure security center`, then select
+   **Review + create > Create**.
+5. Open the saved workbook under **Microsoft Defender for Cloud > Workbooks**.
+
+Only a `Microsoft.Insights/workbooks` resource is deployed. Reuse an existing
+workbook's GUID as `workbookId` when updating; the default `newGuid()` otherwise
+creates another workbook.
+
+**Permissions:** read access to selected subscriptions, APIM services/APIs,
+metrics, Defender pricing and API collections. Optional log queries require
+Log Analytics query access. Saving/deploying also requires workbook-write
+permission on the destination resource group. No plan-write or API-onboarding
+permission is needed.
+
+## Live querying and scope
+
+Like the Storage workbook, this workbook uses **Azure Resource Graph** for
+coverage and a native **Azure Monitor Metrics** control for request usage.
+The embedded queries also use:
+
+- **ARM GET/GETARRAY** for the actual API inventory, APIM tier/regions, configured
+  subscription plan and onboarded collections. `GETARRAY` follows list pagination.
+- **Azure Monitor Metrics REST** for per-API `Requests`, `Total`, `interval=FULL`
+  over the same last-30-day window. These feed eligibility-aware calculations;
+  the native metric grid shows whole-service requests, not protected traffic.
+- **Optional existing Log Analytics gateway logs** for a subscription-wide model
+  across multiple APIM services.
+
+APIM differs from Storage: its API child inventory is not indexed in Resource
+Graph, and APIM metrics cannot use Storage's multi-resource selection pattern.
+The workbook therefore evaluates **one subscription and one APIM service at a
+time**. Its API counts are selected-service counts, not a multi-service fleet total.
+Reported assessment counts are labeled separately because they can lag or omit
+APIs; they are not a replacement for full inventory.
+
+### Cost recommendations
+
+The metric-based comparison is a subscription recommendation only when the
+selected APIM is the subscription's **sole APIM service**. It compares:
+
+1. **All eligible APIs**: least-cost plan for a prospective full rollout.
+2. **Currently onboarded APIs**: configured plan versus least-cost plan for today's
+   onboarded set, modeled over the full 30 days, including potential monthly savings.
+
+All P1-P5 fees **plus overages** are compared. An existing plan tied for minimum
+modeled cost is retained. For example, two million calls favor P1 at USD 400,
+even though they exceed its one-million-call allowance; P2 would cost USD 700.
+
+For subscriptions with multiple APIM services, these metric-based recommendations
+are withheld rather than treating one instance as the subscription total.
+On **Cost estimation**, optionally select an existing Log Analytics workspace:
+
+- Requires **Analytics-plan** `ApiManagementGatewayLogs` or legacy
+  `AzureDiagnostics` `GatewayLogs`, not Basic/Auxiliary tables.
+- Confirm complete, unsampled, managed-gateway-only logging with no relevant
+  exclusions or transformations for the full 30 days. This is a declared
+  assumption, not an automatic logging audit.
+- Missing onboarded API records withhold current-scope guidance. Overlapping
+  legacy/resource-specific schemas are blocked; select one schema if necessary.
+- Full-rollout log modeling also requires confirmation that **every API** across
+  the subscription is eligible and every service is represented. Otherwise that
+  rollout estimate remains withheld.
+
+The workbook does not enable diagnostic settings, change retention or ingest logs.
+
+## Pricing and limitations
+
+- Embedded **USD public reference pricing**, verified **2026-10-29**: P1-P5
+  monthly fees are 200, 700, 5,000, 7,000 and 50,000; included calls are 1M, 5M,
+  50M, 100M and 1B. Overage rates per call are 0.00020, 0.00014, 0.00010,
+  0.00007 and 0.00005. Verify [current pricing](https://azure.microsoft.com/pricing/details/defender-for-cloud/)
+  and your agreement before acting.
+- The supported scope is managed-gateway REST API collections on documented
+  classic Developer, Basic, Standard and Premium tiers in supported commercial
+  regions. Consumption and unsupported API types are excluded. Unverified
+  tiers/regions require review. Workspace APIs and self-hosted traffic are outside
+  this scope. Revisions share one logical API collection.
+- Grids display at most **1,000 rows**. Resource Graph calculations expand at most
+  **2,000 raw rows per array**; exceeding the required API, collection or metric
+  limit withholds recommendations. Partial counts are labeled as lower bounds.
+- Split API traffic must reconcile to whole-service totals. Missing/null samples,
+  read failures, unknown plans, pending onboarding and incomplete required scope
+  mean **not calculated**, never zero. Explicit numeric zero samples are valid.
+- This is a current-configuration planning model, not an invoice or a detection
+  health attestation. Historical onboarding/deletions, recent APIs, calendar-month
+  entitlements, hourly fees, trials, agreements, credits and seasonality can differ.
+  Recent traffic is not extrapolated to invent a month.
+
+## Maintaining the workbook JSON
+
+Edit queries and formatting **directly in the standalone workbook JSON** or the
+portal Advanced Editor. Keep it identical to the JSON parsed from
+`resources[0].properties.serializedData` in [armTemplate.json](./armTemplate.json).
+Update both files together; no separate query folder, build script or runtime
+dependency is needed.
+
+Local schema, KQL-parser and calculation checks do not replace a live Azure
+portal import or verification of actual telemetry in an approved environment.
+
+## Optional PowerShell estimation at scale
+
+The [PowerShell estimator](../../Powershell%20scripts/Defender%20APIs%20Cost%20Estimator/d4apis_cost_estimator_v1.ps1)
+and its [README](../../Powershell%20scripts/Defender%20APIs%20Cost%20Estimator/readme.md)
+are independent CSV/JSON reporting tools. The workbook never calls the script,
+ingests its output or requires it for refresh.
+
+## Version history
+
+- **1.2** - Storage-style coverage/cost layout, native metric grid, API coverage
+  totals, embedded queries and two-file JSON delivery with README.
+- **1.1** - Native live Azure queries, eligibility-aware plan comparison and optional
+  multi-APIM log model.
+
+## References
+
+- [Workbook native data sources and pagination](https://learn.microsoft.com/azure/azure-monitor/visualize/workbooks-data-sources)
+- [Defender for APIs support](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-apis-prepare)
+- [Thirty-day sizing and billing guidance](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-apis-deploy)
+- [APIM metric reference](https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/microsoft-apimanagement-service-metrics)
