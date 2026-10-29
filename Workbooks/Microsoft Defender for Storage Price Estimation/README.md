@@ -1,12 +1,36 @@
-# Microsoft Defender for Storage - Price Estimation Dashboard 4.2
+# Microsoft Defender for Storage - Price Estimation Workbook v4.2
 
 Estimate **30-day costs from seven days of usage** for Defender for Storage and on-upload malware scanning, including accounts where protection is not yet enabled.
 
-**One JSON, two import methods:** [D4StorageARMTemplate.json](D4StorageARMTemplate.json) supports deployment and manual extraction. Creating the workbook does not enable paid Defender plans or scanning.
+Creating or importing this workbook does not enable paid Defender plans or scanning.
+
+## Workbook files
+
+| File | Use |
+| --- | --- |
+| [D4StorageDeployment.json](./D4StorageDeployment.json) | Paste-ready workbook JSON for the Advanced Editor. |
+| [armTemplate.json](./armTemplate.json) | ARM template for deploying a saved workbook. |
+
+This follows the [Arc workbook layout](../ARC%20deployment%20for%20multicloud/README.md): use the standalone JSON for copy/paste and the ARM template for deployment.
+
+## Manual import with the Advanced Editor
+
+1. Open [D4StorageDeployment.json](./D4StorageDeployment.json), select **Raw**, and copy the entire JSON.
+2. Open **Microsoft Defender for Cloud > Workbooks > New > Advanced Editor (</>)**, or **Edit > Advanced Editor** on an existing workbook.
+3. Choose **Workbook Template** (**Gallery Template** in some portal versions), replace the editor contents, and select **Apply > Done Editing > Save**.
+
+**No conversion or extraction is required.** Paste the standalone `Notebook/1.0` JSON, not [armTemplate.json](./armTemplate.json). **ARM Template** mode is for deployment export, not applying workbook content.
+
+### Import troubleshooting
+
+| Symptom | Action |
+|---|---|
+| Invalid workbook content or Apply unavailable | Copy the complete [D4StorageDeployment.json](./D4StorageDeployment.json) and use **Workbook Template**, not ARM Template mode. |
+| No schema request service available (768) | The editor cannot fetch external schemas. Follow the manual-import steps; changing the schema URL does not fix that editor limitation. |
 
 ## Deploy to Azure
 
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FMicrosoft-Defender-for-Cloud%2Fmain%2FWorkbooks%2FMicrosoft%20Defender%20for%20Storage%20Price%20Estimation%2FD4StorageARMTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton" alt="Deploy to Azure"/></a>
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FMicrosoft-Defender-for-Cloud%2Frefs%2Fheads%2Fmain%2FWorkbooks%2FMicrosoft%2520Defender%2520for%2520Storage%2520Price%2520Estimation%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton" alt="Deploy to Azure"/></a>
 
 1. Select the button, sign in, and choose a subscription, resource group, and region.
 2. Keep `workbookSourceId` as `azure security center`, then select **Review + create > Create**.
@@ -15,32 +39,11 @@ Estimate **30-day costs from seven days of usage** for Defender for Storage and 
 **Permissions:** workbook deployment/write access to the resource group, plus read access to selected subscriptions, storage accounts, and metrics.
 
 The button uses upstream `main`; use the deployment link in the PR description to test an unmerged change.
-Alternatively, load the same ARM JSON through **Deploy a custom template > Build your own template in the editor**.
+Alternatively, upload [armTemplate.json](./armTemplate.json) through **Deploy a custom template > Build your own template in the editor**.
 
-## Manual import with the Advanced Editor
+## Maintaining the workbook JSON
 
-1. Download [D4StorageARMTemplate.json](D4StorageARMTemplate.json).
-2. From its download directory, copy the decoded workbook content:
-
-   ```powershell
-   $template = Get-Content -LiteralPath .\D4StorageARMTemplate.json -Raw | ConvertFrom-Json
-   $workbookJson = $template.resources[0].properties.serializedData
-   $workbookJson | Set-Clipboard
-   ```
-
-3. Open **Defender for Cloud > Workbooks > New > Advanced Editor (</>)**.
-4. Choose **Workbook Template** (or **Gallery Template**), replace the contents with your clipboard, and select **Apply > Done Editing > Save**.
-
-Paste the decoded `Notebook/1.0` content, **not the ARM wrapper**. ARM Template mode is for deployment export, not applying workbook content.
-
-Without clipboard access, replace the last command with `$workbookJson | Set-Content -LiteralPath .\Workbook.import.json -Encoding utf8` and copy that generated file's contents.
-
-### Import troubleshooting
-
-| Symptom | Action |
-|---|---|
-| Invalid workbook content or Apply unavailable | Extract `serializedData` and use **Workbook Template**, not ARM Template mode. |
-| No schema request service available (768) | The editor cannot fetch external schemas. Follow the manual-import steps; changing the schema URL does not fix that editor limitation. |
+Keep [D4StorageDeployment.json](./D4StorageDeployment.json) and the workbook embedded in `resources[0].properties.serializedData` in [armTemplate.json](./armTemplate.json) identical when changing workbook content. The ARM wrapper supplies deployment parameters; it must not change the workbook's queries, calculations, or layout.
 
 ## PowerShell estimation at scale
 

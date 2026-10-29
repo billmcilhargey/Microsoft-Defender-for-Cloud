@@ -88,4 +88,4 @@ This script will get estimated metrics on Azure Storage V2 Accounts to help esti
 
 The [PowerShell estimator](./DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1) is maintained in this directory.
 
-See the [workbook README](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/ReadMe.md#powershell-estimation-at-scale) for current prerequisites, examples, CSV fields, and model limitations.
+See the [workbook README](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md#powershell-estimation-at-scale) for current prerequisites, examples, CSV fields, and model limitations.
