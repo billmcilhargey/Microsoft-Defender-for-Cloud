@@ -1,29 +1,41 @@
 # Microsoft Defender for APIs - Price Estimation
 
-**Version 1.5**
+**Version 1.6**
 
 A self-contained, live workbook following the
 [Defender for Storage Price Estimation](../Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md)
-scope selectors and native data sources, with subscription coverage, API details
-and cost estimation together on **one continuous page**. There are no separate
-coverage or cost tabs; scroll down to see the available sections.
+scope selectors and native data sources. The main page shows **subscription
+coverage and compact cost/plan recommendations**. API/service inventory and
+diagnostics are optional under **Show details**, which defaults to **Off**.
+There are no separate coverage or cost tabs.
 
 All queries and calculations are **embedded in the workbook JSON**. No PowerShell,
 build step, uploaded snapshot or custom ingestion is required. Creating or
 importing this workbook does not enable a paid plan or onboard APIs.
 
-## Single-page layout
+## Main page and optional details
 
-| Section | Contents |
+| Main-page section | Contents |
 | --- | --- |
-| Defender for APIs coverage | All, several or one subscription: enablement, configured P1-P5 plan, trial status and reported onboarding assessments. All/several APIM services show a live service overview; a single matching service also enables full API inventory. |
-| APIM service overview | Services matching the All/several/one service scope, with tiers, regions and reported API assessments. |
-| API coverage details | Full child-API inventory and eligibility/protection totals when exactly one APIM service is resolved. |
-| Cost estimation | Native Azure Monitor request totals, five-plan costs including overages, rollout/current-coverage recommendations and modeled savings, on the same page as coverage. |
-| Optional log comparison and data quality | Existing subscription-wide log model, scope assumptions and evidence behind calculated or withheld recommendations. |
+| Subscription coverage | All, several or one subscription: enablement, configured P1-P5 plan, trial status and reported onboarding assessments. |
+| Full-rollout cost recommendation | Eligible API count, observed requests, best-fit plan, modeled cost and calculation status for a single resolved APIM service's scope. |
+| Current-coverage plan optimization | Onboarded API count, requests, configured/best-fit plans, modeled costs, potential savings and calculation status. |
+| Optional subscription log model | Compact subscription-wide cost and plan guidance when an existing workspace and its required logging confirmations are selected. |
+
+Turn **Show details** On for the APIM service overview, individual API eligibility
+and usage records, whole-service request grid, pricing reference and diagnostics.
+The duplicate **Eligible API totals and protection gaps** grid has been removed.
+Selected-service eligible/onboarded counts remain in the cost summaries.
+
+The details option changes presentation only. Required live inventory, onboarding
+and request reads still run for cost calculations while details are Off. A failed
+required query still blocks the affected estimate and remains visible through the
+cost summary's status/error. Hiding detail tables does **not** repair data errors
+or convert missing evidence into zero.
 
 Sections requiring a single service or an optional workspace remain conditional
-on those selections. Removing tabs does not bypass scope or data-quality guards.
+on those selections. If no single service is resolved, the main page explains why
+cost recommendations are not yet calculated.
 
 **Enabled** is the subscription setting, not proof that every API is onboarded.
 **In trial** is Yes when reported trial time remains, No for `PT0S`, and Unknown
@@ -31,9 +43,12 @@ when trial data is unavailable.
 
 Costs display as **USD with two decimal places**. Request counts and costs remain
 numeric for sorting and export. Empty cost cells mean **not calculated**, not zero.
-The native metric grid hides the raw **Requests Timeline** array and keeps the
+The optional native metric grid hides the raw **Requests Timeline** array and keeps the
 numeric **Requests (Sum)** total. This display change does not change call counts
 or cost calculations.
+All five plan fees and overages are still compared internally. Main-table exports
+contain the compact recommendation fields, not the former five-cost breakdown.
+The optional per-API grid retains its detailed record export.
 
 ## Workbook files
 
@@ -59,10 +74,13 @@ link above follows whichever repository revision you are viewing.
 4. Choose **All subscriptions**, several subscriptions, or one subscription.
    The coverage table works without an APIM selection.
 5. Choose **All APIM services** (the default), several services, or one service.
-   The overview lists matching services and their reported API assessments.
-6. For full API inventory and metric-based recommendations, clear All and select
-   **one service**. Its subscription is derived automatically. Coverage, API
-   inventory and cost sections appear together below; no tab switching is needed.
+   Subscription coverage remains on the main page; **Show details > On** also
+   displays the matching service overview.
+6. For metric-based recommendations, clear All and select **one service**. Its
+   subscription is derived automatically. The main page shows compact rollout and
+   current-plan summaries.
+7. Leave **Show details > Off** for the clean overview. Turn it **On** only when
+   investigating individual APIs, traffic or missing-data diagnostics.
 
 **No conversion or extraction is required.** Paste the standalone workbook JSON,
 not [armTemplate.json](./armTemplate.json). Use **Refresh** to rerun live queries.
@@ -96,7 +114,7 @@ coverage and a native **Azure Monitor Metrics** control for request usage.
 you can access. You can also select a subset. Resource Graph's indexed pricing,
 trial and assessment data can lag direct ARM configuration.
 **All APIM services** is also a default option. It applies within the selected
-subscriptions, not outside that scope. A live service overview shows the matching
+subscriptions, not outside that scope. With **Show details** On, a live service overview shows the matching
 services, tiers, regions and reported API onboarding assessments. It is not a
 complete child-API inventory.
 The embedded queries also use:
@@ -105,7 +123,7 @@ The embedded queries also use:
   subscription plan and onboarded collections. `GETARRAY` follows list pagination.
 - **Azure Monitor Metrics REST** for per-API `Requests`, `Total`, `interval=FULL`
   over the same last-30-day window. These feed eligibility-aware calculations;
-  the native metric grid shows whole-service requests, not protected traffic.
+  the optional native metric grid shows whole-service requests, not protected traffic.
 - **Optional existing Log Analytics gateway logs** for a subscription-wide model
   across multiple APIM services.
 
@@ -130,7 +148,8 @@ APIs; they are not a replacement for full inventory.
 
 ### Cost recommendations
 
-Selecting All APIM services provides the service overview; it does **not**
+Selecting All APIM services provides subscription coverage and an optional service
+overview under Show details; it does **not**
 enumerate every child API, sum per-service traffic, or generate a fleet-wide
 recommendation. Select one service for the detail view. Selecting All
 subscriptions does **not** aggregate cost estimates across subscriptions. The
@@ -207,7 +226,7 @@ portal import or verification of actual telemetry in an approved environment.
 
 If the page still has **Defender for APIs coverage / Cost estimation** tabs, or the
 query title is **Current subscription settings and reported onboarding coverage**,
-it is an earlier workbook revision, not this one-page v1.5 layout.
+it is an earlier workbook revision, not the current one-page summary layout.
 The early coverage query depended on ARM parameter values. The current coverage
 query uses Resource Graph directly and does not require an APIM selection or ARM
 parameter values.
@@ -220,8 +239,9 @@ Replace the saved workbook's entire template:
 2. In the portal, choose **Edit > Advanced Editor > Workbook Template**
    (**Gallery Template** in some versions). Select all existing contents and
    replace them; do not append the new JSON or paste the ARM deployment template.
-3. Select **Apply > Done Editing**. Confirm that the header says **Version 1.5**
-   and that there are **no coverage/cost tabs**, then **Save**.
+3. Select **Apply > Done Editing**. Confirm that the header says **Version 1.6**,
+   that **Show details** defaults to **Off**, and that there are **no coverage/cost
+   tabs**, then **Save**.
 4. If the editor rejects the JSON, the old workbook remains active. Check for an
    incomplete copy and repeat with the full downloaded file.
 
@@ -254,6 +274,9 @@ ingests its output or requires it for refresh.
 
 ## Version history
 
+- **1.6** - Simplified the main page to coverage and compact cost/plan summaries.
+  Added opt-in service/API/diagnostic details and removed the duplicate API totals
+  grid. Data reads, five-plan calculations and missing-data safeguards are retained.
 - **1.5** - Combined coverage, API inventory and cost sections onto one page;
   removed tab dependencies and hid the raw Requests Timeline array without
   changing usage or pricing queries.
