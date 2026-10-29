@@ -90,6 +90,8 @@ This script will get estimated metrics on Azure Storage V2 Accounts to help esti
 
 ### DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1
 
+**Version 4.2**
+
 Use this [estimator](./DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1) for large scopes or workbook timeouts. It projects a usage sample to a **30-day forecast**, including accounts where protection is not enabled.
 It handles pagination and bounded parallelism without changing Azure resources, and restores your Azure context afterward.
 
@@ -115,11 +117,24 @@ Connect-AzAccount -TenantId '<tenant-id>'
 ```
 
 The default sample is seven days. `-OutputPath` changes the default `CostEstimation.csv`.
+Console messages show the standard workbook title/version and label the modeled cap in GB/month per storage account.
 
 #### CSV output
 
 Output has one row per account, with totals printed separately.
 `StorageAccountCost` is base plus overage; `MalwareScanningCost` is separate; `EstimatedMonthlyCost` includes both. `OldEstimateCost` is the legacy-plan comparison.
+
+Existing CSV column names and order are retained; the new upload-volume fields are appended.
+
+| Field | Meaning |
+| --- | --- |
+| EstimatedMonthlyUploadedBytes | Numeric, uncapped monthly upload forecast in bytes. |
+| EstimatedMonthlyUploaded | The same forecast with automatic B/KB/MB/GB/TB/PB/EB display units. |
+| EstimatedMonthlyIngressGB | Existing numeric, uncapped upload forecast in GB. |
+| MalwareScanningBillableGB | Modeled scanning volume after the optional cap, not measured or invoiced GB. |
+
+Use numeric byte/GB values, not the display string, for sorting and totals. Applying a scanning cap does not reduce the reported upload forecast.
+Missing upload metrics leave both new volume fields blank, not `0 B`.
 
 Missing metrics produce warnings, blank affected costs, and `MetricsStatus=Incomplete`. Such subtotals are **not complete scope totals**.
 HTTP/authentication failures stop the script without exporting a new report.

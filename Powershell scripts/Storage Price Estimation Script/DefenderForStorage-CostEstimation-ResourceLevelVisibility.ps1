@@ -2,10 +2,18 @@
 #Requires -Modules Az.Accounts
 <#
 .SYNOPSIS
-Estimates Defender for Storage and on-upload malware scanning costs without changing Azure resources.
+Estimates Microsoft Defender for Storage and on-upload malware scanning costs without changing Azure resources.
 .DESCRIPTION
 Projects sampled Blob/File transactions and upload-related Blob ingress to 30 days.
 The ingress estimate uses the same 1,073,741,824-byte GB conversion as the workbook.
+Numeric byte and GB fields are retained alongside an automatically scaled upload-volume display.
+.PARAMETER MalwareScanningCapGB
+Modeled monthly scanning limit in GB per storage account. Use -1 for an uncapped estimate.
+This scenario input does not discover configured caps or change Azure settings.
+.OUTPUTS
+Account records with numeric costs and volumes, a readable upload-volume field, and metric completeness.
+.NOTES
+Microsoft Defender for Storage - Price Estimation, version 4.2.
 #>
 [CmdletBinding()]
 param(
@@ -26,6 +34,31 @@ param(
     [ValidateScript({ $_ -ge -1 })]
     [long]$MalwareScanningCapGB = -1
 )
+
+function Format-StorageDataSize {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateNotNull()]
+        [ValidateScript({ $_ -ge 0 })]
+        [Nullable[decimal]]$Bytes
+    )
+
+    $units = @('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB')
+    $size = [decimal]$Bytes
+    $unitIndex = 0
+    while ($size -ge 1024 -and $unitIndex -lt ($units.Count - 1)) {
+        $size /= [decimal]1024
+        $unitIndex++
+    }
+    $displayValue = [math]::Round($size, 2)
+    if ($displayValue -ge 1024 -and $unitIndex -lt ($units.Count - 1)) {
+        $displayValue = [math]::Round($displayValue / [decimal]1024, 2)
+        $unitIndex++
+    }
+    return '{0} {1}' -f $displayValue.ToString('0.##', [cultureinfo]::InvariantCulture), $units[$unitIndex]
+}
 
 function Invoke-StorageEstimationGet {
     param([string]$Path, $Context)
@@ -137,6 +170,7 @@ function Get-StorageAccountCostEstimate {
         $oldEstimateCost = [math]::Round($monthlyTransactions / 10000 * [decimal]0.02, 2)
     }
 
+    $monthlyIngressBytes = [decimal]0
     $monthlyIngressGB = [decimal]0
     $billableGB = [decimal]0
     $malwareCost = [decimal]0
@@ -147,11 +181,13 @@ function Get-StorageAccountCostEstimate {
         )
         $ingress = Get-MetricTotal -Service blobServices -MetricName Ingress -ApiNames $uploadApis -MetricContext $Context
         if ($null -eq $ingress) {
+            $monthlyIngressBytes = $null
             $monthlyIngressGB = $null
             $billableGB = $null
             $malwareCost = $null
         } else {
-            $monthlyIngressGB = $ingress * $scale / [decimal]1073741824
+            $monthlyIngressBytes = $ingress * $scale
+            $monthlyIngressGB = $monthlyIngressBytes / [decimal]1073741824
             $billableGB = $monthlyIngressGB
             if ($Configuration.MalwareScanningCapGB -ge 0) {
                 $billableGB = [math]::Min($billableGB, [decimal]$Configuration.MalwareScanningCapGB)
@@ -181,6 +217,12 @@ function Get-StorageAccountCostEstimate {
         MalwareScanningCost = $malwareCost
         EstimatedMonthlyCost = $totalCost
         MetricsStatus = $status
+        EstimatedMonthlyUploadedBytes = $monthlyIngressBytes
+        EstimatedMonthlyUploaded = if ($null -eq $monthlyIngressBytes) {
+            $null
+        } else {
+            Format-StorageDataSize -Bytes $monthlyIngressBytes
+        }
     }
 }
 
@@ -224,6 +266,13 @@ $configuration = [pscustomobject]@{
     MalwareScanningPricePerGB = $MalwareScanningPricePerGB
     MalwareScanningCapGB = $MalwareScanningCapGB
 }
+$capDescription = if ($MalwareScanningCapGB -lt 0) {
+    'Uncapped'
+} else {
+    $MalwareScanningCapGB.ToString([cultureinfo]::InvariantCulture)
+}
+Write-Information 'Microsoft Defender for Storage - Price Estimation' -InformationAction Continue
+Write-Information "Version 4.2. Modeled scanning cap (GB/month per storage account): $capDescription." -InformationAction Continue
 $results = [System.Collections.Generic.List[object]]::new()
 try {
     foreach ($subscription in $subscriptions) {
@@ -251,9 +300,13 @@ try {
                 Get-StorageAccountCostEstimate -Account $_ -Context $context -Configuration $configuration
             })
         } else {
+            $sizeDefinition = ${function:Format-StorageDataSize}.ToString()
             $requestDefinition = ${function:Invoke-StorageEstimationGet}.ToString()
             $estimateDefinition = ${function:Get-StorageAccountCostEstimate}.ToString()
             $estimates = @($accounts | ForEach-Object -ThrottleLimit $ThrottleLimit -Parallel {
+                Set-Item -Path Function:\Format-StorageDataSize -Value (
+                    [scriptblock]::Create($using:sizeDefinition)
+                )
                 Set-Item -Path Function:\Invoke-StorageEstimationGet -Value (
                     [scriptblock]::Create($using:requestDefinition)
                 )

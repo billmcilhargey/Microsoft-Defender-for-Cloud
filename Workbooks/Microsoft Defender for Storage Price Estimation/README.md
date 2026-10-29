@@ -60,6 +60,7 @@ Keep the standalone workbook JSON identical to `resources[0].properties.serializ
 ## PowerShell estimation at scale
 
 For large scopes or timeouts, use the [PowerShell estimator](../../Powershell%20scripts/Storage%20Price%20Estimation%20Script/DefenderForStorage-CostEstimation-ResourceLevelVisibility.ps1).
+It also reports automatic upload-size units while preserving numeric byte/GB fields for sorting and totals.
 See its [README](../../Powershell%20scripts/Storage%20Price%20Estimation%20Script/README.md#defenderforstorage-costestimation-resourcelevelvisibilityps1) for prerequisites, examples, CSV fields, and pricing options.
 
 ## Pricing and limitations
