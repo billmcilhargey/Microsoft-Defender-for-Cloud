@@ -140,5 +140,6 @@ Check [current pricing](https://azure.microsoft.com/pricing/details/defender-for
 - The script excludes on-demand scanning and additional Storage read, blob-index, and Event Grid charges.
   See [scanning behavior](https://learn.microsoft.com/azure/defender-for-cloud/on-upload-malware-scanning).
 - Scanning is modeled as uncapped by default (`-MalwareScanningCapGB -1`). Setting a cap changes the estimate, not Azure settings.
+  This is a scenario input, not discovery of configured per-account caps or a guaranteed invoice ceiling.
 
 For manual import or ARM deployment, see the [workbook README](../../Workbooks/Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md).

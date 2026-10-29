@@ -14,6 +14,7 @@ Creating or importing this workbook does not enable paid Defender plans or scann
 | Cost estimation | Estimated activity-monitoring, malware-scanning, and associated costs. |
 
 **Estimated monthly uploaded** uses automatic size units (MB/GB/TB). **Malware scanning cap (GB/month)** is the monthly limit per storage account.
+Display units do not change numeric sorting, totals, or the GB-based scanning-cost calculation.
 
 ## Workbook files
 
@@ -57,7 +58,14 @@ See its [README](../../Powershell%20scripts/Storage%20Price%20Estimation%20Scrip
 
 - Estimates are not invoices or quotes; check [current pricing](https://azure.microsoft.com/pricing/details/defender-for-cloud/) and your agreement.
 - Upload ingress is a proxy for scanned volume, not measured scanning or billing data. Review incomplete or errored results before using totals.
+- The coverage cap is informational; workbook scanning-cost estimates do not apply it. The PowerShell estimator offers a separate modeled cap.
 - Large scopes can be truncated or time out. Narrow the selection or use PowerShell; partial results are not tenant-wide totals.
+
+## Troubleshooting
+
+**No "matrix" implementation available** in **Read Operations Associated Cost** is a known formula error, not a malware finding.
+Use `(["eventgrid"] / 10000) * 0.005`, removing only the brackets around the entire expression; keep the column-reference brackets.
+Correct both affected calculated columns and synchronize both JSON files. Treat affected costs as **Not calculated**, not zero.
 
 ## Overview
 
