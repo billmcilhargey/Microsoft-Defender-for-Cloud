@@ -34,6 +34,8 @@ Display units do not change numeric sorting, totals, or the GB-based scanning-co
 
 **Monthly activity monitoring cost** and **Monthly malware scanning cost** are monthly estimates displayed as USD with two decimal places, matching the storage account cost and overage charge columns.
 
+Associated-cost columns use USD with **2-7 decimal places**, not automatic count units. This preserves readable sub-cent amounts: one modeled read operation is **$0.0000005**. Account values, subscription subtotals, and grand totals remain numeric; formatting does not change usage, rates, or aggregation precision.
+
 ## Workbook files
 
 | File | Use |
@@ -103,6 +105,12 @@ Neither an empty-metric fallback nor a rounded display confirms zero billable us
 If a saved workbook still shows the message, reimport the updated [standalone workbook JSON](./D4StorageDeployment.json), or redeploy the updated [ARM template](./armTemplate.json).
 Until corrected, treat affected costs as **Not calculated**, not zero, and related totals as incomplete.
 
+### Long read-operation totals or scientific notation
+
+Older copies mixed text `"0"` results with numeric costs, causing grouped sums to concatenate values into long strings, sometimes containing `e-7`. Those strings are not valid charges.
+All Event Grid, read-operation, and index-tag zero-cost branches now return numeric expressions before aggregation. Both merge surfaces use consistent USD formatting with up to seven decimals, while retaining full numeric values for sums.
+The scientific value `5e-7` by itself is only **$0.0000005**, not a large cost. Reimport the updated workbook or redeploy the ARM template to correct existing saved copies.
+
 ## Overview
 
 ![Workbook overview](WorkbookSample.png)
@@ -113,5 +121,5 @@ Until corrected, treat affected costs as **Not calculated**, not zero, and relat
 
 | Version | Changes |
 | --- | --- |
-| 4.3 | Split the cost views into **Storage & scanning costs** and **Scanning associated costs**. Kept one shared activity source and deferred the blob-count source and associated-cost table until their tab first opens. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. |
+| 4.3 | Split the cost views into **Storage & scanning costs** and **Scanning associated costs**. Kept one shared activity source and deferred the blob-count source and associated-cost table until their tab first opens. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. Kept associated-cost results numeric before aggregation and standardized USD formatting to 2-7 decimals to prevent concatenated totals and expose sub-cent amounts clearly. |
 | 4.2 | Added paste-ready workbook JSON and a separate ARM deployment template, clearer count and size units, consistent USD cost formatting and headings, explicit trial statuses, and the PowerShell estimator workflow. Corrected the matrix-producing read-operation formulas and explained calculation errors, incomplete totals, and zero-display caveats. |
