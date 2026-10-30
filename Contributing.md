@@ -47,6 +47,9 @@ When creating commits, always try to create useful commit messages explaining wh
 
 When creating a pull request, please create a good title, fill the description with content, and ideally, explain what your PR will change. Make sure to provide a [readme](https://github.com/Azure/Azure-Security-Center/wiki/Readme.md-Template) file so people will know what your artifact will do. Once your pull request is submitted, we will automatically verify you've signed the CLA agreement, and that your code passes a set of CI build tests.
 
+For workbook changes, see [workbook browser validation](.script/ReadMe.md#workbook-browser-validation-opt-in).
+Offline regression tests run in CI; authenticated portal testing is a separate, explicitly approved local step.
+
 [code-of-conduct]: https://opensource.microsoft.com/codeofconduct/
 [new-issue]: https://github.com/Azure/Microsoft-Defender-for-Cloud/issues/new
 [bug-report]: https://github.com/Azure/Microsoft-Defender-for-Cloud/issues/new?assignees=&labels=&template=bug_report.md&title=

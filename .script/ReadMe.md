@@ -63,3 +63,188 @@ Since it is run locally you will see "Azure DevOps CI for a Pull Request wasn't 
     * (Draft PR marked as "Work in Progress" and cannot be merged, more info [here](https://help.github.com/en/articles/about-pull-requests#draft-pull-requests)).  
     * Remember to delete the draft PR.  
 
+## Workbook browser validation (opt-in)
+
+Adapted from [microsoft/Application-Insights-Workbooks#3260](https://github.com/microsoft/Application-Insights-Workbooks/pull/3260),
+at commit `01e1ba4daf9bdc6727b84a4525f781568bbdb5bc`. The shared
+[Mocha/Playwright validator](./workbook-browser/workbookBrowserValidator.js) adds source-import,
+primary-tab, deferred-content and grid contracts without deploying or saving a workbook.
+It complements JSON syntax validation; it does not certify every query or workbook workflow.
+
+### Offline tests and supported inputs
+
+Use Node.js 24 and run `npm ci` from the repository root.
+
+```powershell
+npm test
+npm run test:workbook
+npm run tsc -- --noEmit
+```
+
+`npm test` includes the existing TypeScript tests and the new offline regression tests.
+`npm run test:workbook` runs only the workbook validator regressions. The
+[Azure Pipelines job](../.azure-pipelines/workbookBrowserValidator.yaml) runs that focused suite
+without Azure credentials, CDP access, browser installation or portal navigation.
+`playwright-core` does not download browsers. Authenticated tests are outside normal test discovery
+and run only with `npm run test:browser`.
+
+Unlike the upstream repository, Defender for Cloud stores workbooks in several formats.
+The [source loader](./workbook-browser/workbookSource.js) supports:
+
+- Native `Notebook/1.0` documents with an `items` array, regardless of `.workbook` or `.json` extension.
+- An ARM template containing exactly one top-level `Microsoft.Insights/workbooks` resource,
+  with literal JSON in `properties.serializedData`.
+- Literal workbook variables referenced by `[variables('name')]`,
+  `[string(variables('name'))]` or `[base64ToString(variables('name'))]`.
+  The last form supports base64-embedded workbook payloads.
+- ARM-escaped strings such as `[[example]` inside literal workbook objects, decoded exactly once.
+  Native workbook strings and text inside serialized JSON remain unchanged.
+- A single `Microsoft.Insights/workbookTemplates` resource with literal `properties.templateData`
+  or a supported literal-variable reference.
+
+Extraction is entirely local. General ARM evaluation, parameter substitution, chained/dynamic
+variables and nested deployments are deliberately unsupported and fail explicitly.
+For example, use the native
+[Synack workbook](../Workbooks/Synack%20Vulnerabilities/SynackVulnerabilities.workbook)
+instead of its dynamically rewritten ARM template. Ambiguous templates with multiple workbook
+resources must also use a separate native workbook. No template is deployed to extract its content.
+The report's SHA-256 covers the extracted workbook source, with BOM removed and CRLF normalized,
+not the enclosing ARM template.
+
+### Confirm scope before live testing
+
+Follow the [browser-validation skill](../.github/skills/validate-workbook-browser/SKILL.md).
+Ask which Azure tenant and non-production subscription scopes the user wants, and whether screenshots
+would help. **Pause and wait for explicit tenant selection and per-run confirmation, including in
+autopilot.** Do not choose the current, default or previously used directory, request credentials,
+or automate sign-in. Offline generation and synthetic tests need no Azure access.
+
+After confirmation, the user signs into that directory themselves. Use only trusted templates and
+Reader permissions at the agreed scopes: rendering real workbooks can execute queries and incur costs.
+In the current **English-language React workbook view**, open a **new empty unsaved workbook**,
+open **Advanced Editor**, and leave its default empty JSON in place. Do not paste the template first.
+
+The runner verifies the selected directory GUID from the portal account-menu metadata before import
+and rechecks before tab changes, parameter actions and screenshots. Missing, ambiguous or mismatched
+tenant evidence pauses the run; it never switches tenants. It refuses saved/non-empty workbooks and
+selects only the Monaco model bound to the visible editor. It never clicks Save or ARM action links.
+Tenant IDs, account details and record values are not included in its report.
+
+### Local Mocha/CDP runner
+
+After the user has selected and confirmed a tenant, start a dedicated Chromium-based browser with
+a separate profile outside this repository and a loopback-only debugging port. For example:
+
+```powershell
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --user-data-dir="$env:LOCALAPPDATA\WorkbookBrowserValidation"
+```
+
+Prepare sign-in and the empty Advanced Editor in that browser, then run:
+
+```powershell
+$env:WORKBOOK_BROWSER_TEMPLATE = ".script\workbook-browser\fixtures\Smoke.workbook"
+$env:WORKBOOK_BROWSER_CHECKS = ".script\workbook-browser\fixtures\smoke-checks.json"
+$env:WORKBOOK_BROWSER_CDP_ENDPOINT = "http://127.0.0.1:9222"
+$env:WORKBOOK_BROWSER_TENANT_ID = "<user-selected-tenant-guid>"
+$env:WORKBOOK_BROWSER_TENANT_CONFIRMED = "true"
+npm run test:browser
+```
+
+The example uses only static text and inline JSON; it does not query tenant telemetry.
+Use another native workbook or supported ARM template by changing `WORKBOOK_BROWSER_TEMPLATE`;
+the checks file is optional. Exactly one eligible portal page must be open. Missing configuration
+is a failure, not a skipped/passing test. Only credential-free loopback HTTP CDP endpoints are accepted.
+The client disconnects afterward without creating or closing browser contexts. Close the dedicated
+browser and clear private per-run variables when finished. Do not expose CDP or use your normal profile.
+
+### Existing Playwright or MCP browser
+
+For a tool that already supplies a Playwright `page`, generate a portable function instead of opening
+a debugging port:
+
+```powershell
+New-Item -ItemType Directory -Force .playwright-mcp | Out-Null
+npm run test:browser:script -- --workbook ".script\workbook-browser\fixtures\Smoke.workbook" --checks ".script\workbook-browser\fixtures\smoke-checks.json" --tenant "<user-selected-tenant-guid>" --confirm-tenant --output ".playwright-mcp\workbook-check.js"
+```
+
+Run the generated `async (page) => { ... }` function in the tool's selected tab after preparing
+the empty Advanced Editor. Use the tool's filename input where available. The function has no Node
+imports; hosts with short timeouts should use the local Mocha runner for longer validations.
+
+Generation can run offline without tenant arguments, but executing that script pauses before browser
+access until tenant selection is confirmed. `--tenant` alone is not confirmation. Changing a tenant
+through CLI/environment overrides revokes previous confirmation unless explicitly confirmed again.
+Existing output files are never overwritten. Generated scripts contain workbook data and checks, not
+authentication state; keep them private and remove your own generated files afterward.
+The local `.playwright-mcp/` output folder is ignored by Git.
+
+### Contract coverage
+
+The [example checks](./workbook-browser/fixtures/smoke-checks.json) exercise two tabs and one
+parameter action revealing both a two-row table and text, with the producer hidden afterward.
+Supported options are:
+
+- `tabs`: exact primary tab labels in order. Static labels are inferred; parameterized labels need
+  explicit expectations. All declared tabsets must use parameter links, not external/ARM navigation.
+- `timeout`: per-operation timeout, 1 to 120000 milliseconds; default 30000.
+- `tenant`: a private per-run `{ "id": "<user-selected-tenant-guid>", "confirmed": true }` object,
+  preferably supplied through CLI/environment rather than a committed checks file.
+- `deferred`: an array with `trigger` (one unique parameter-link label), `heading` (one content heading),
+  optional `tab` (defaults to the first primary tab), and optional `hideTriggerAfterLoad`.
+- `minRows`, `maxRows`, `columns`: optional fields on each deferred check for exact ordered column
+  display labels and inclusive row bounds. Counts use `aria-rowcount` minus the header, not virtualized
+  DOM rows. A missing result grid or unreliable count fails; no-data is not proof of health.
+
+Checks sharing a tab and trigger are grouped: all headings must be unmounted before the ready trigger
+is activated once, then every requested panel contract is checked. A self-hiding producer needs its
+visibility parameter declared global before the producer.
+
+The runner uses enabled-state-checked native Enter-key activation and confirms tab selection.
+This tests the accessible path, not mouse hit testing. Nested-tab interactions, filters, graphs,
+query correctness, resource coverage and arbitrary workflows still need scenario-specific tests.
+The JSON report includes the normalized source hash, visited labels, requested contract results and
+aggregate counts, with explicit coverage limits and `workbookSaved: false`. Review even labels before
+publishing summaries; never publish generated scripts or browser profiles as test evidence.
+
+### Optional local screenshots
+
+Screenshots are disabled by default. After separate user approval, enable auto-redacted local captures
+with `--screenshots "C:\private-evidence\workbook-check"` for the generator, or
+`WORKBOOK_BROWSER_SCREENSHOTS` for Mocha. A checks file can also contain:
+
+```json
+{
+  "screenshots": {
+    "directory": ".playwright-mcp/screenshots",
+    "maskSelectors": ["[data-sensitive-context]"]
+  }
+}
+```
+
+`auto` is the default redaction mode. It masks data cells, inputs, non-contract text and media before
+capture, retaining only exact contract labels, and excludes surrounding portal/account chrome.
+Additional selectors add masks and must match at every capture stage. Redaction uses DOM CSS with a
+computed-style probe; blocked redaction fails capture without an unmasked fallback. Temporary
+markers/styles are removed even after errors. Output paths must be local, without URLs, network paths
+or parent traversal. Conservative masking is not guaranteed anonymization.
+
+If auto masks hide too much, ask the user to choose, never reduce masking automatically:
+
+| `screenshots.redaction` | Behavior |
+| --- | --- |
+| `auto` | Conservative automatic masks plus extra selected masks. |
+| `manual` | Only user-reviewed `maskSelectors`. |
+| `ai-assisted` | Only approved selectors proposed through authorized/local inspection; no AI service is called. |
+| `none` | Private unredacted capture for local manual editing/redaction. |
+
+Every non-auto mode requires specific sensitive-capture approval and `allowSensitiveCapture: true`.
+Manual/AI-assisted modes require reviewed selectors; `none` refuses selectors instead of ignoring them.
+CLI equivalents are `--redaction <mode> --allow-sensitive-capture`; Mocha uses
+`WORKBOOK_BROWSER_REDACTION` and `WORKBOOK_BROWSER_ALLOW_SENSITIVE_CAPTURE=true`.
+Approval environment values must be exactly `true` or `false`. Negative/explicit-false CLI flags revoke
+prior approvals. Keep tenant IDs and approval choices out of committed configuration.
+
+All images remain local, `reviewRequired: true` and `publicationApproved: false`.
+Nothing is uploaded or shared automatically. Do not send sensitive screenshots to third-party AI
+services. Review every final image, including manually edited/redacted images, before sharing, and
+remove only your own private intermediate files when finished.
