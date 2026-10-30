@@ -13,7 +13,9 @@ The **Subscription** and **Compliance standard** selectors apply to every tab. T
 - Expand a subscription to compare its standards. Subscriptions with failing standards are sorted first.
 - Counts remain numeric. Pass percentage is calculated separately for each standard as `100 * passed / (passed + failed)`, excluding skipped and unsupported controls. A zero denominator is shown as **N/A**; overlapping standards are not averaged into a subscription compliance score.
 - Subscription status is the worst child result: failed takes precedence, incomplete/unassessed results remain neutral, and passed is shown only when the child results support it.
+- Status values stay numeric for roll-up; their formatter thresholds are serialized as strings for compatibility with the current portal renderer.
 - Select a standard row to open **Compliance Detail** with that standard and subscription selected.
+- Row selection exports a separate drill-through scope, not the global standard filter consumed by the Overview query. This avoids a refresh cycle while keeping the main filters unchanged.
 
 ### Workloads
 
@@ -53,7 +55,7 @@ The **Resource detail state** filter, including **Failed only**, filters the res
 
 Control results are grouped by subscription and standard. Use **Failed only** to prioritize remediation. Descriptions have more display space and open their full text when selected. Passed/failed/skipped values are assessment counts per control, not unique resource counts. Group rows do not default to a green success icon.
 
-An Overview selection scopes this tab to the selected subscription and standard. **Show all selected subscriptions** clears only the drill-through subscription scope; the top standard filter remains active. If the main subscription selection changes and excludes the drilled subscription, reset that detail scope rather than interpreting the empty result as compliance.
+An Overview selection scopes this tab to the selected subscription and standard. **Clear Overview drill-through** clears that row selection's scope; the main subscription and standard filters remain active. If the main filters exclude the drilled selection, clear the drill-through scope rather than interpreting the empty result as compliance.
 
 ## Data coverage and export
 

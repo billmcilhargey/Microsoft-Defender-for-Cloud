@@ -79,12 +79,12 @@
           {
             "id": "a8f3b011-c3aa-4ca5-aab5-77068eb42cc0",
             "version": "KqlParameterItem/1.0",
-            "name": "DetailSubscription",
+            "name": "DetailScope",
             "type": 1,
             "isRequired": true,
             "isGlobal": true,
             "isHiddenWhenLocked": true,
-            "value": "*"
+            "value": "{}"
           }
         ],
         "style": "pills",
@@ -194,18 +194,15 @@
               "exportToExcelOptions": "all",
               "exportedParameters": [
                 {
-                  "fieldName": "subscriptionId",
-                  "parameterName": "DetailSubscription",
-                  "defaultValue": "*"
-                },
-                {
-                  "fieldName": "name",
-                  "parameterName": "Control",
-                  "defaultValue": "value::all"
+                  "fieldName": "",
+                  "parameterName": "DetailScope",
+                  "parameterType": 1,
+                  "defaultValue": "{}"
                 },
                 {
                   "fieldName": "DetailTab",
                   "parameterName": "selectedTab",
+                  "parameterType": 1,
                   "defaultValue": "Overview"
                 }
               ],
@@ -241,19 +238,19 @@
                       "thresholdsGrid": [
                         {
                           "operator": "==",
-                          "thresholdValue": 2,
+                          "thresholdValue": "2",
                           "representation": "3",
                           "text": "Failed"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": 1,
+                          "thresholdValue": "1",
                           "representation": "Unavailable",
                           "text": "Not assessed / unknown"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": 0,
+                          "thresholdValue": "0",
                           "representation": "success",
                           "text": "Passed"
                         },
@@ -697,7 +694,7 @@
           {
             "type": 1,
             "content": {
-              "json": "### Control results - {Control:label}\nOverview drill-through restricts this tab to the selected subscription and standard. Use **Show all selected subscriptions** below to clear the drill-through subscription scope; the top compliance-standard filter remains in effect.\n\nExpand a subscription and standard to see controls. Select a description to read its full text. Passed/failed/skipped counts here are **assessments per control**, not resource totals. Group rows do not inherit a success icon. Azure Resource Graph result limits apply; the export includes returned rows. An empty Failed-only view is not proof of complete coverage."
+              "json": "### Control results - {Control:label}\nOverview drill-through restricts this tab to the selected subscription and standard. Use **Clear Overview drill-through** below to clear the selected subscription and standard; the top subscription and compliance-standard filters remain in effect.\n\nExpand a subscription and standard to see controls. Select a description to read its full text. Passed/failed/skipped counts here are **assessments per control**, not resource totals. Group rows do not inherit a success icon. Azure Resource Graph result limits apply; the export includes returned rows. An empty Failed-only view is not proof of complete coverage."
             },
             "name": "text - 2"
           },
@@ -709,24 +706,24 @@
               "links": [
                 {
                   "id": "16ea38e1-4bbb-4c7b-8d81-bccdb30ce2dc",
-                  "cellValue": "DetailSubscription",
+                  "cellValue": "DetailScope",
                   "linkTarget": "parameter",
-                  "linkLabel": "Show all selected subscriptions",
-                  "subTarget": "*",
+                  "linkLabel": "Clear Overview drill-through",
+                  "subTarget": "{}",
                   "style": "link"
                 }
               ]
             },
-            "name": "ResetDetailSubscription"
+            "name": "ResetDetailScope"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "securityresources\r\n| where type =~ 'microsoft.security/regulatorycompliancestandards/regulatorycompliancecontrols'\r\n| extend ComplianceStandard = extract('(?i)/regulatorycompliancestandards/([^/]+)/', 1, id)\r\n| where \"{Control:escapejson}\" == '*' or ComplianceStandard == \"{Control:escapejson}\"\r\n| where \"{DetailSubscription:escapejson}\" == '*' or subscriptionId == \"{DetailSubscription:escapejson}\"\r\n| extend Description = tostring(properties.description), RawState = tostring(properties.state), Passed = toint(properties.passedAssessments), Failed = toint(properties.failedAssessments), Skipped = toint(properties.skippedAssessments)\r\n| extend State = case(RawState =~ 'Failed', 'Failed', RawState =~ 'Passed', 'Passed', RawState =~ 'Skipped', 'Skipped', RawState =~ 'Unsupported', 'Unsupported', 'Unknown')\r\n| where '{DetailState}' == 'All' or State == '{DetailState}'\r\n| extend FailureOrder = iff(State == 'Failed', 1, 0)\r\n| project subscriptionId, ComplianceStandard, name, Description, State, Passed, Failed, Skipped, FailureOrder\r\n| order by FailureOrder desc, Failed desc, name asc",
+              "query": "securityresources\r\n| where type =~ 'microsoft.security/regulatorycompliancestandards/regulatorycompliancecontrols'\r\n| extend ComplianceStandard = extract('(?i)/regulatorycompliancestandards/([^/]+)/', 1, id)\r\n| where \"{Control:escapejson}\" == '*' or ComplianceStandard == \"{Control:escapejson}\"\r\n| extend DrillScope = parse_json(\"{DetailScope:escapejson}\")\r\n| where isempty(tostring(DrillScope.subscriptionId)) or subscriptionId == tostring(DrillScope.subscriptionId)\r\n| where isempty(tostring(DrillScope.name)) or ComplianceStandard == tostring(DrillScope.name)\r\n| extend Description = tostring(properties.description), RawState = tostring(properties.state), Passed = toint(properties.passedAssessments), Failed = toint(properties.failedAssessments), Skipped = toint(properties.skippedAssessments)\r\n| extend State = case(RawState =~ 'Failed', 'Failed', RawState =~ 'Passed', 'Passed', RawState =~ 'Skipped', 'Skipped', RawState =~ 'Unsupported', 'Unsupported', 'Unknown')\r\n| where '{DetailState}' == 'All' or State == '{DetailState}'\r\n| extend FailureOrder = iff(State == 'Failed', 1, 0)\r\n| project subscriptionId, ComplianceStandard, name, Description, State, Passed, Failed, Skipped, FailureOrder\r\n| order by FailureOrder desc, Failed desc, name asc",
               "size": 0,
               "title": "Controls - {Control:label}",
-              "noDataMessage": "No controls matched the selected standard, detail subscription scope, and state. Try All controls or Show all selected subscriptions, and verify compliance coverage and Reader permissions.",
+              "noDataMessage": "No controls matched the selected standard, Overview drill-through scope, and state. Try All controls or Clear Overview drill-through, and verify compliance coverage and Reader permissions.",
               "noDataMessageStyle": 2,
               "showExportToExcel": true,
               "exportToExcelOptions": "all",
