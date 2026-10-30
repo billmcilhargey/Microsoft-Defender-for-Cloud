@@ -33,7 +33,9 @@ Workload is an operational resource family, not a business application or a tag-
 
 Classification uses the provider-qualified type derived from Azure resource IDs, including nested resource types, rather than a leaf name such as `vaults`. Recovery Services vaults therefore do not become Key Vault resources. Native AWS/GCP resource identities are retained; unsupported native type mappings remain visible in Other/unmapped.
 
-The queries join regulatory compliance assessments to resource assessments on **subscription ID and assessment key**. Control/standard mappings are collapsed before joining, and findings are deduplicated by **subscription, cloud-aware resource identity, and assessment key** afterward. Azure identities are case-normalized; native cloud identities retain case. Multiple controls referencing one recommendation do not inflate resource or finding counts.
+The queries join regulatory compliance assessments to resource assessments on **subscription ID and assessment key**.
+Control/standard mappings are collapsed before joining, and findings are deduplicated by **subscription, cloud-aware resource identity, and assessment key** afterward.
+Azure identities are case-normalized; native cloud identities retain case. Multiple controls referencing one recommendation do not inflate resource or finding counts.
 
 The summary always includes all assessment states within the selected subscription, standard, and workload scope:
 
@@ -59,6 +61,7 @@ Azure Resource Graph provides the current state, not historical trends. Empty re
 All result grids support Excel export. Azure Resource Graph result-row limits also apply to detail grids and exports; exports contain returned rows, not an unlimited inventory. Narrow subscription, standard, workload, or state filters for large scopes. Summary counts are calculated server-side before result-row limits.
 
 The editable [workbook](./regulatorycompliance.workbook) and the workbook embedded in the [deployment template](./armTemplate.json) contain the same definition.
+Unused nullable formatter properties are omitted so ARM template validation can also validate the embedded definition.
 
 ## Try on Portal
 You can deploy the workbook by clicking on the buttons below:
@@ -74,14 +77,14 @@ You can deploy the workbook by clicking on the buttons below:
 
 To deploy the workbook you will need **write permissions** in the subscription where it will be stored. To view the information, you will need **read permissions** of all subscriptions that are in the defined groups.
 
-# Questions
+## Questions
 You can submit any questions or requests [here](https://github.com/Azure/Azure-Security-Center/issues). Please also refer to our [Wiki](https://github.com/Azure/Azure-Security-Center/wiki#resources), as it will provide you with further information.
 
-# Contributing
+## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.microsoft.com.
+the rights to use your contribution. For details, visit <https://cla.microsoft.com>.
 
 When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
 a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions

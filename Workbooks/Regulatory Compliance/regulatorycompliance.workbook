@@ -261,7 +261,6 @@
                         },
                         {
                           "operator": "Default",
-                          "thresholdValue": null,
                           "representation": "Blank",
                           "text": ""
                         }
@@ -590,7 +589,6 @@
                         },
                         {
                           "operator": "Default",
-                          "thresholdValue": null,
                           "representation": "Blank",
                           "text": ""
                         }
@@ -797,7 +795,6 @@
                         },
                         {
                           "operator": "Default",
-                          "thresholdValue": null,
                           "representation": "Blank",
                           "text": ""
                         }
