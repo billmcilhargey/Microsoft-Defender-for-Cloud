@@ -132,6 +132,7 @@ function createValidationPlan(workbookSource, options = {}) {
 
     const links = [];
     const tabsets = [];
+    const itemNames = new Map();
     let itemCount = 0;
     function visit(items, inheritedGlobals) {
         if (!Array.isArray(items)) {
@@ -141,6 +142,7 @@ function createValidationPlan(workbookSource, options = {}) {
         for (const item of items) {
             checkObject(item, 'Workbook item');
             itemCount++;
+            itemNames.set(item.name, (itemNames.get(item.name) || 0) + 1);
             const content = item.content || {};
             if (item.type === 9) {
                 const parameters = content.parameters || [];
@@ -225,19 +227,25 @@ function createValidationPlan(workbookSource, options = {}) {
             throw new Error(`Trigger "${trigger}" must identify one parameter link, not an external or ARM action.`);
         }
         const producer = matches[0];
+        const identity = { itemName: producer.item.name, linkId: producer.link.id };
+        if (Object.values(identity).some(value => typeof value !== 'string' || !value.trim() || /[\u0000-\u001F]/.test(value)) ||
+            itemNames.get(identity.itemName) !== 1 || links.filter(entry => entry.link.id === identity.linkId).length !== 1) {
+            throw new Error(`Trigger "${trigger}" requires a unique producer name and link id.`);
+        }
         if (hideTriggerAfterLoad &&
             producer.item.conditionalVisibility?.parameterName === producer.link.cellValue &&
             !producer.globals.has(producer.link.cellValue)) {
             throw new Error(`Trigger "${trigger}" must declare its visibility parameter as global before the producer.`);
         }
-        return { tab, trigger, heading, hideTriggerAfterLoad, minRows: check.minRows, maxRows: check.maxRows, columns };
+        return { tab, trigger, producer: identity, heading, hideTriggerAfterLoad,
+            minRows: check.minRows, maxRows: check.maxRows, columns };
     });
 
     const groups = new Map();
     for (const check of deferred) {
         const key = JSON.stringify([check.tab, check.trigger]);
         if (!groups.has(key)) {
-            groups.set(key, { tab: check.tab, trigger: check.trigger, checks: [] });
+            groups.set(key, { tab: check.tab, trigger: check.trigger, producer: check.producer, checks: [] });
         }
         groups.get(key).checks.push(check);
     }
@@ -385,12 +393,27 @@ function readGridSummary(element) {
     return { rows: Number(count) - 1, columns };
 }
 
+async function resolveParameterTrigger(frame, group, timeout) {
+    const owner = frame.locator(`[id=${JSON.stringify(group.producer.itemName)}]`);
+    await owner.waitFor({ state: 'visible', timeout });
+    const linkSelector = `[id=${JSON.stringify(group.producer.linkId)}]`;
+    const options = { name: group.trigger, exact: true, includeHidden: true };
+    const trigger = owner.locator(`${linkSelector}:not([href]),${linkSelector}[href=""],${linkSelector}[href="#"]`)
+        .and(owner.getByRole('menuitem', options)
+            .or(owner.getByRole('button', options))
+            .or(owner.getByRole('link', options)));
+    if (await owner.count() !== 1 || await frame.locator(linkSelector).count() !== 1 || await trigger.count() !== 1) {
+        throw new Error('Cannot uniquely map the verified parameter producer/link to a DOM control. No action was activated.');
+    }
+    return trigger;
+}
+
 async function activateWorkbookControl(locator, timeout) {
     await locator.waitFor({ state: 'visible', timeout });
-    if (!await locator.isEnabled()) {
+    if (!await locator.isEnabled({ timeout })) {
         throw new Error('A requested workbook control is disabled; refusing to activate it.');
     }
-    await locator.press('Enter');
+    await locator.press('Enter', { timeout });
 }
 
 async function validateWorkbookInBrowser(page, workbookSource, options = {}) {
@@ -479,11 +502,9 @@ async function validateWorkbookInBrowser(page, workbookSource, options = {}) {
             await tablist.getByRole('tab', { name: group.tab, exact: true, selected: true })
                 .waitFor({ state: 'visible', timeout: plan.timeout });
         }
-        const trigger = frame.getByRole('menuitem', { name: group.trigger, exact: true })
-            .or(frame.getByRole('button', { name: group.trigger, exact: true }))
-            .or(frame.getByRole('link', { name: group.trigger, exact: true }));
+        const trigger = await resolveParameterTrigger(frame, group, plan.timeout);
         await trigger.waitFor({ state: 'visible', timeout: plan.timeout });
-        await trigger.scrollIntoViewIfNeeded();
+        await trigger.scrollIntoViewIfNeeded({ timeout: plan.timeout });
         for (const check of group.checks) {
             if (await frame.getByRole('heading', { name: check.heading, exact: true, includeHidden: true }).count()) {
                 throw new Error(`Deferred content "${check.heading}" was mounted before its trigger.`);
@@ -609,7 +630,7 @@ function createPlaywrightScript(workbookSource, options = {}) {
     const functions = [isAzurePortalUrl, normalizeTenantSelection, requireConfirmedTenant, verifySelectedTenant,
         normalizeScreenshotOptions, createValidationPlan, markScreenshotMasks, screenshotRedactionStyle,
         applyScreenshotRedaction, captureMaskedScreenshot, captureWorkbookScreenshot, readGridSummary,
-        activateWorkbookControl, validateWorkbookInBrowser]
+        resolveParameterTrigger, activateWorkbookControl, validateWorkbookInBrowser]
         .map(callback => callback.toString()).join('\n\n');
     return `async (page) => {\n${functions}\nreturn validateWorkbookInBrowser(page, ${JSON.stringify(plan.source)}, ${JSON.stringify(options)});\n}\n`;
 }
@@ -627,6 +648,7 @@ module.exports = {
     captureMaskedScreenshot,
     captureWorkbookScreenshot,
     readGridSummary,
+    resolveParameterTrigger,
     activateWorkbookControl,
     validateWorkbookInBrowser,
     loadValidationInput,

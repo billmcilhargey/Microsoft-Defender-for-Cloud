@@ -34,6 +34,8 @@ const checks = JSON.parse(fs.readFileSync(checksPath, 'utf8'));
 const emptySource = JSON.stringify({ version: 'Notebook/1.0', items: [] });
 const testTenant = { id: '11111111-2222-3333-4444-555555555555', confirmed: true };
 const otherTenantId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+const fixtureProducer = JSON.parse(source).items.find(item => item.name === 'browser_fixture_group').content.items[0];
+const fixtureIdentity = { itemName: fixtureProducer.name, linkId: fixtureProducer.content.links[0].id };
 
 function validateWorkbookInBrowser(page, workbookSource, options = {}) {
     return validateWithExplicitTenant(page, workbookSource, { tenant: testTenant, ...options });
@@ -129,6 +131,42 @@ function editorPage(existingSource, editorCount = 1, unsaved = true) {
     return { page, state, frame };
 }
 
+function bindParameterProducer(editor, trigger, {
+    ownerCount = 1, linkCount = 1, visible = true, contained = true, navigational = false
+} = {}) {
+    const ownerSelector = `[id=${JSON.stringify(fixtureIdentity.itemName)}]`;
+    const linkSelector = `[id=${JSON.stringify(fixtureIdentity.linkId)}]`;
+    const controlSelector = `${linkSelector}:not([href]),${linkSelector}[href=""],${linkSelector}[href="#"]`;
+    const roles = { or() { return this; } };
+    const owner = {
+        async waitFor(options) {
+            assert.equal(options.state, 'visible');
+            assert.isNumber(options.timeout);
+            if (!visible || !ownerCount) throw new Error('Verified parameter producer is unavailable.');
+        },
+        count: async () => ownerCount,
+        locator(selector) {
+            assert.equal(selector, controlSelector);
+            return trigger;
+        },
+        getByRole(role, options) {
+            assert.include(['menuitem', 'button', 'link'], role);
+            assert.deepEqual(options, { name: 'Show details', exact: true, includeHidden: true });
+            return roles;
+        }
+    };
+    trigger.and = candidate => {
+        assert.strictEqual(candidate, roles);
+        return trigger;
+    };
+    trigger.count = async () => contained && !navigational ? 1 : 0;
+    editor.frame.locator = selector => {
+        if (selector === ownerSelector) return owner;
+        assert.equal(selector, linkSelector);
+        return { count: async () => linkCount };
+    };
+}
+
 function sharedDeferredEditor(initialHeadings = []) {
     const workbook = JSON.parse(source);
     const group = workbook.items.find(item => item.name === 'browser_fixture_group');
@@ -161,7 +199,8 @@ function sharedDeferredEditor(initialHeadings = []) {
         }
         return original(role, options);
     };
-    return { ...editor, source: JSON.stringify(workbook), triggerClicks: () => clicks };
+    bindParameterProducer(editor, trigger);
+    return { ...editor, source: JSON.stringify(workbook), trigger, triggerClicks: () => clicks };
 }
 
 function deferredGridEditor({ rows = 2, columns = ['Label', 'Count'], available = true } = {}) {
@@ -246,6 +285,24 @@ describe('Validating browser validator contracts...', () => {
         });
         assert.deepEqual(differentTabs.deferredGroups.map(group => [group.tab, group.trigger, group.checks.length]),
             [['Overview', 'Show details', 2], ['Details', 'Show details', 1]]);
+    });
+
+    it('preserves the verified producer and link identities in each deferred group', () => {
+        const plan = createValidationPlan(source, checks);
+        assert.deepEqual(plan.deferred[0].producer, fixtureIdentity);
+        assert.deepEqual(plan.deferredGroups[0].producer, fixtureIdentity);
+    });
+
+    it('requires unique producer names and link ids before browser interaction', () => {
+        const invalid = [
+            workbook => { workbook.items[3].content.items[0].name = ''; },
+            workbook => { workbook.items[2].name = fixtureIdentity.itemName; },
+            workbook => { delete workbook.items[3].content.items[0].content.links[0].id; },
+            workbook => { workbook.items[1].content.links[0].id = fixtureIdentity.linkId; }
+        ];
+        for (const change of invalid) {
+            assert.throws(() => createValidationPlan(changedSource(change), checks), /unique producer name and link id/);
+        }
     });
 
     it('uses total ARIA rows and normalizes display headers without inspecting record values', () => {
@@ -497,6 +554,7 @@ describe('Validating browser validator contracts...', () => {
             }
             return original(role, options);
         };
+        bindParameterProducer(editor, trigger);
         await rejects(validateWorkbookInBrowser(editor.page, JSON.stringify(workbook), {
             deferred: [{ trigger: 'Show details', heading: 'Deferred table' }]
         }), /mounted before its trigger/);
@@ -512,6 +570,75 @@ describe('Validating browser validator contracts...', () => {
         }, 30000), /control is disabled/);
         assert.isFalse(activated);
     });
+
+    it('applies the configured timeout to visibility, enabled-state checks, and keyboard activation', async () => {
+        const calls = [];
+        await activateWorkbookControl({
+            async waitFor(options) { calls.push(['visible', options]); },
+            async isEnabled(options) { calls.push(['enabled', options]); return true; },
+            async press(key, options) { calls.push([key, options]); }
+        }, 75);
+        assert.deepEqual(calls, [
+            ['visible', { state: 'visible', timeout: 75 }],
+            ['enabled', { timeout: 75 }],
+            ['Enter', { timeout: 75 }]
+        ]);
+    });
+
+    function installUnrelatedControl(editor) {
+        let activations = 0;
+        const original = editor.frame.getByRole.bind(editor.frame);
+        const unrelated = {
+            or() { return this; },
+            async waitFor() {},
+            async scrollIntoViewIfNeeded() {},
+            async isEnabled() { return true; },
+            async press() { activations++; }
+        };
+        editor.frame.getByRole = (role, options = {}) => options.name === 'Show details' ?
+            unrelated : original(role, options);
+        return () => activations;
+    }
+
+    it('never activates a same-named frame-wide link when its verified parameter producer is hidden', async () => {
+        const editor = sharedDeferredEditor();
+        bindParameterProducer(editor, editor.trigger, { visible: false });
+        const unrelatedActivations = installUnrelatedControl(editor);
+        await rejects(validateWorkbookInBrowser(editor.page, editor.source, {
+            deferred: [{ trigger: 'Show details', heading: 'Deferred table' }]
+        }));
+        assert.equal(unrelatedActivations(), 0);
+        assert.equal(editor.triggerClicks(), 0);
+    });
+
+    it('activates only the identified parameter control even when another frame-wide control has the same label', async () => {
+        const editor = sharedDeferredEditor();
+        const unrelatedActivations = installUnrelatedControl(editor);
+        const report = await validateWorkbookInBrowser(editor.page, editor.source, {
+            deferred: [{ trigger: 'Show details', heading: 'Deferred table' }]
+        });
+        assert.equal(unrelatedActivations(), 0);
+        assert.equal(editor.triggerClicks(), 1);
+        assert.equal(report.parameterActionsClicked, 1);
+    });
+
+    for (const [description, mapping] of [
+        ['missing producer', { ownerCount: 0 }],
+        ['ambiguous producer', { ownerCount: 2 }],
+        ['missing link id', { linkCount: 0 }],
+        ['duplicate link id', { linkCount: 2 }],
+        ['link outside the producer', { contained: false }],
+        ['navigational link', { navigational: true }]
+    ]) {
+        it(`refuses deferred activation with a ${description} instead of falling back to labels`, async () => {
+            const editor = sharedDeferredEditor();
+            bindParameterProducer(editor, editor.trigger, mapping);
+            await rejects(validateWorkbookInBrowser(editor.page, editor.source, {
+                deferred: [{ trigger: 'Show details', heading: 'Deferred table' }]
+            }));
+            assert.equal(editor.triggerClicks(), 0);
+        });
+    }
 
     it('clicks a shared trigger once and validates all of its panels', async () => {
         const editor = sharedDeferredEditor();

@@ -4,11 +4,11 @@ At the time of submitting your Pull Request, automatic GitHub validations using 
 
 ## What is Azure Pipelines  
 
-[Azure Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/get-started/what-is-azure-pipelines?view=azure-devops) is a cloud service that you can use to automatically build and test your code project and make it available to other users. It works with just about any language or project type.   
+[Azure Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/get-started/what-is-azure-pipelines?view=azure-devops) is a cloud service that you can use to automatically build and test your code project and make it available to other users. It works with just about any language or project type.
 
 
-## How to add new PR validation:
-1. Install the following extensions, if you use [VS Code](https://code.visualstudio.com/docs/azure/extensions) editor: 
+## Adding a new validation job
+1. Install the following extensions, if you use [VS Code](https://code.visualstudio.com/docs/azure/extensions) editor:
    - [Azure Pipelines](https://marketplace.visualstudio.com/items?itemName=ms-azure-devops.azure-pipelines)
    - [Yaml](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml)
 
@@ -16,16 +16,16 @@ At the time of submitting your Pull Request, automatic GitHub validations using 
 The libraries are defined in package.json
 
 3. Create an Azure Pipeline job for the new validation.  
-Add new yaml file under [.azure-pipelines](https://github.com/Azure/Azure-Sentinel/blob/master/.azure-pipelines/) folder, see example in [yamlFileValidator.yaml](https://github.com/Azure/Azure-Sentinel/blob/master/.azure-pipelines/yamlFileValidator.yaml) file (note - the script code should be added on another file for clearer code, see in step #5). 
+Add new yaml file under [.azure-pipelines](https://github.com/Azure/Azure-Sentinel/blob/master/.azure-pipelines/) folder, see example in [yamlFileValidator.yaml](https://github.com/Azure/Azure-Sentinel/blob/master/.azure-pipelines/yamlFileValidator.yaml) file (note - the script code should be added on another file for clearer code, see in step #5).
     * Add scripts those are relevant to the specific folder under one yaml file in the same job. The validation infrastructure and the examples are in TypeScript, but you can use other languages if you prefer
-    * Azure Pipelines work with many languages such as Python, Java,JavaScript, PHP, Ruby, C#, C++, and Go. Refer to [Azure Pipelines documentation](https://docs.microsoft.com/en-us/azure/devops/pipelines/?view=azure-devops) for further information on this. 
+    * Azure Pipelines work with many languages such as Python, Java,JavaScript, PHP, Ruby, C#, C++, and Go. Refer to [Azure Pipelines documentation](https://docs.microsoft.com/en-us/azure/devops/pipelines/?view=azure-devops) for further information on this.
 
 4. Add the new job to [azure-pipelines.yml](https://github.com/Azure/Azure-Sentinel/blob/master/azure-pipelines.yml) file as a new template under jobs property
 
 5. Create script file for the new validation. The job from step #3 has reference to this file. See instructions in [How to add script validation](#how-to-add-script-validation) section.  
    A step is a failure if it either explicitly reports failure (using a ##vso command) or ends the script with a non-zero exit code
 
-6. Test the new validation. See instruction in [How to test the new validation](#How-to-test-the-new-validation) section
+6. Test the new validation. See instruction in [How to test the new validation](#how-to-test-the-new-validation) section
 
 ### How to add script validation
 
@@ -54,7 +54,7 @@ By default, the logs color is white. In case you want another color you can use 
 See example in [yamlFileValidatorTest](https://github.com/Azure/Azure-Sentinel/tree/master/.script/tests/yamlFileValidatorTest) folder.
 
    - Create new folder under [.script/test](https://github.com/Azure/Azure-Sentinel/tree/master/.script/tests). folder name format: TestedFileName+Test  
-   - Create tests file. File name format: TestedFileName.test.ts  
+   - Create tests file. Filename format: TestedFileName.test.ts
    - Run the test by execute from  cmd "npm test".  
 Since it is run locally you will see "Azure DevOps CI for a Pull Request wasn't found. If issue persists - please open an issue" message. You can ignore it.
    - In order to debug the test file, select "Mocha Current File" option in VSCode  
@@ -199,7 +199,16 @@ Checks sharing a tab and trigger are grouped: all headings must be unmounted bef
 is activated once, then every requested panel contract is checked. A self-hiding producer needs its
 visibility parameter declared global before the producer.
 
+Each deferred action also retains the verified type-11 producer's unique `name` and the link's
+unique `id`. The renderer must expose those exact values as unique DOM IDs, with the control
+inside its visible producer. Missing, hidden, ambiguous or differently mapped producers/links
+stop the check; there is no frame-wide label fallback. The matched control must have the
+requested accessible label and cannot have an external/action `href`. Renderer versions that
+do not expose this identity contract are unsupported for automatic deferred activation.
+
 The runner uses enabled-state-checked native Enter-key activation and confirms tab selection.
+Visibility waits, enabled-state checks, keyboard activation and deferred-control scrolling all
+receive the configured per-operation timeout, including in the generated runner.
 This tests the accessible path, not mouse hit testing. Nested-tab interactions, filters, graphs,
 query correctness, resource coverage and arbitrary workflows still need scenario-specific tests.
 The JSON report includes the normalized source hash, visited labels, requested contract results and
