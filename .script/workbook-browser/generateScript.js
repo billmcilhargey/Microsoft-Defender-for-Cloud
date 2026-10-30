@@ -29,6 +29,10 @@ function main(argv) {
     });
     fs.writeFileSync(args.output, createPlaywrightScript(input.source, input.options), { encoding: 'utf8', flag: 'wx' });
     console.log(`Created ${path.basename(args.output)}. Run it in a new empty unsaved workbook's Advanced Editor.`);
+    if (input.sourceDiagnostics.length) {
+        console.warn(`Source risk diagnostics: ${input.sourceDiagnostics.map(finding =>
+            `${finding.code} (item ${finding.itemIndex})`).join(', ')}. Review these risks; source is not rewritten.`);
+    }
     if (!input.options.tenant?.confirmed) {
         console.log('PAUSED for live execution: ask which Azure tenant to use and wait for explicit user selection/confirmation, even in autopilot. Do not select a default.');
     }

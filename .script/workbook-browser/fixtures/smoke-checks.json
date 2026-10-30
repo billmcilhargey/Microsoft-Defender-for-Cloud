@@ -1,6 +1,15 @@
 {
   "tabs": ["Overview", "Details"],
   "timeout": 30000,
+  "panels": [
+    {
+      "tab": "Details",
+      "heading": "Ready table",
+      "minRows": 2,
+      "maxRows": 2,
+      "columns": ["Label", "Count"]
+    }
+  ],
   "deferred": [
     {
       "tab": "Overview",

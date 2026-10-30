@@ -1,6 +1,6 @@
 ---
 name: validate-workbook-browser
-description: 'Validate Defender for Cloud Azure Workbooks, including native JSON and ARM templates, with Playwright or MCP. Use for workbook browser testing, Azure sign-in or tenant selection, screenshots, and manual/AI-assisted redaction. Requires a user-selected tenant and pauses live execution even in autopilot until confirmed.'
+description: 'Validate Microsoft Defender for Cloud Azure Workbooks, including native JSON and ARM templates, with Playwright or MCP. Use for workbook browser testing, eager/deferred panel contracts, Azure tenant selection, screenshots, and redaction. Requires a user-selected tenant and pauses live execution even in autopilot until confirmed.'
 ---
 
 # Validate a workbook in the browser
@@ -15,7 +15,7 @@ Follow the [testing guide](../../../.script/ReadMe.md#workbook-browser-validatio
    previously used, or first available tenant. Do not navigate to sign-in, switch accounts, import a workbook,
    query Azure, or capture portal screenshots while waiting. Offline code and synthetic tests can continue.
 3. Have the user sign in or switch directories themselves. Set the selected tenant GUID and confirmation only after their response, using private per-run arguments or environment variables. Do not commit tenant information, reuse an old confirmation for a new run, or echo account details.
-4. The runner must match the portal account-menu tenant to that selection before import, navigation, parameter actions, and screenshots. If the check pauses or cannot verify the tenant, stop and ask the user; never bypass it or select another tenant automatically.
+4. The runner must unambiguously match the portal account-menu tenant to that selection before import, Apply, leaving edit mode, navigation, parameter actions, and screenshots. If identity changes, the session resets, or the check cannot verify the tenant, pause for the user; never automate sign-in, bypass the check, or select another tenant.
 
 ## Offer screenshot and redaction choices
 
@@ -36,7 +36,13 @@ Manual, AI-assisted, and unredacted modes require explicit approval for potentia
    Native `.workbook` and Notebook/1.0 `.json` files are supported, along with single-workbook ARM templates using literal serialized data or supported literal-variable expressions. Unsupported ARM expressions must fail; use the corresponding native workbook instead of deploying or evaluating the template.
 2. Use `npm run test:browser` for a dedicated local CDP browser or generate the portable MCP runner with `npm run test:browser:script`.
 3. Run only the agreed checks and scopes. Observe all approval, no-data, and redaction failures; do not convert them into passes.
+   Use `panels` contracts for already-visible query results; do not invent a deferred action when none exists.
+   Review nonfatal source diagnostics for incompatible threshold types and global input/export feedback.
+   Import/tab smoke is not query validation; request explicit grid labels/row bounds where data matters.
+   Result truncation fails contracts unless explicitly accepted, and accepted limits must remain in the report.
    Deferred actions require unique source producer/link identities mapped to DOM IDs. If that mapping is unavailable,
    stop instead of retrying against same-named controls elsewhere in the frame.
-4. Report the source hash, requested contract results, aggregate counts, selected redaction mode, and coverage limits. Do not include tenant IDs, account identities, record values, or raw screenshots in PR comments.
+4. Report the exact tested source hash/revision, smoke-only versus requested-data-contract coverage, aggregate counts, selected redaction mode, and limits. Distinguish synthetic browser tests from actual authenticated portal execution; do not carry a live pass forward to a changed source. Do not include tenant IDs, account identities, record values, or raw screenshots in PR comments.
+   Parent-document overlays must remain isolated throughout capture; cropping to an iframe is insufficient.
+   If parent isolation or inner redaction fails, stop without an exposed fallback.
 5. Images remain `reviewRequired` and not approved for publication, even in auto mode. No automatic upload is permitted. Remove task-owned intermediate images and private per-run configuration when finished.

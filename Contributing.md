@@ -50,6 +50,7 @@ Once your pull request is submitted, we will automatically verify you've signed 
 
 For workbook changes, see [workbook browser validation](.script/ReadMe.md#workbook-browser-validation-opt-in).
 Offline regression tests run in CI; authenticated portal testing is a separate, explicitly approved local step.
+For query-result coverage, supply eager-panel or deferred grid contracts rather than reporting import/tab smoke as query validation.
 
 [code-of-conduct]: https://opensource.microsoft.com/codeofconduct/
 [new-issue]: https://github.com/Azure/Microsoft-Defender-for-Cloud/issues/new

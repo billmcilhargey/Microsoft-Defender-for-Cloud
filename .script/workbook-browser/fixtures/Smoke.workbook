@@ -137,6 +137,23 @@
         "value": "details"
       },
       "name": "browser_fixture_details"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "title": "Ready table",
+        "query": "{\"version\":\"1.0.0\",\"content\":\"[{\\\"Label\\\":\\\"First\\\",\\\"Count\\\":1},{\\\"Label\\\":\\\"Second\\\",\\\"Count\\\":2}]\",\"transformers\":null}",
+        "queryType": 8,
+        "size": 1,
+        "visualization": "table"
+      },
+      "conditionalVisibility": {
+        "parameterName": "view",
+        "comparison": "isEqualTo",
+        "value": "details"
+      },
+      "name": "browser_fixture_ready_table"
     }
   ],
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"

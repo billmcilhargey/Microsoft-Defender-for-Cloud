@@ -16,9 +16,14 @@ const {
     markScreenshotMasks,
     screenshotRedactionStyle,
     applyScreenshotRedaction,
+    isolateScreenshotFrame,
+    verifyScreenshotIsolation,
+    restoreScreenshotIsolation,
     captureMaskedScreenshot,
     captureWorkbookScreenshot,
     readGridSummary,
+    waitForPanelReady,
+    validatePanelContract,
     activateWorkbookControl,
     validateWorkbookInBrowser: validateWithExplicitTenant,
     loadValidationInput,
@@ -106,6 +111,7 @@ function editorPage(existingSource, editorCount = 1, unsaved = true) {
             return {
                 async waitFor() {},
                 async isEnabled() { return true; },
+                async focus() {},
                 async press(key) { assert.equal(key, 'Enter'); state.clicks.push(options.name); },
                 first() { return this; },
                 async evaluate(callback, argument) {
@@ -182,6 +188,7 @@ function sharedDeferredEditor(initialHeadings = []) {
             if (options.state === 'hidden') assert.isTrue(loaded);
         },
         async isEnabled() { return true; },
+        async focus() {},
         async scrollIntoViewIfNeeded() {},
         async press(key) {
             assert.equal(key, 'Enter');
@@ -194,7 +201,8 @@ function sharedDeferredEditor(initialHeadings = []) {
         if (role === 'heading' && ['Deferred table', 'Loaded details'].includes(options.name)) {
             return {
                 count: async () => loaded || initialHeadings.includes(options.name) ? 1 : 0,
-                async waitFor() { assert.isTrue(loaded); }
+                async waitFor() { assert.isTrue(loaded); },
+                locator: () => ({ count: async () => 1, evaluate: async () => ({ settled: true }) })
             };
         }
         return original(role, options);
@@ -213,6 +221,10 @@ function deferredGridEditor({ rows = 2, columns = ['Label', 'Count'], available 
             ...control,
             locator: () => ({
                 count: async () => 1,
+                async evaluate() {
+                    if (!available) throw new Error('No query grid is available.');
+                    return { settled: true };
+                },
                 getByRole: () => ({
                     async waitFor() {
                         if (!available) throw new Error('No query grid is available.');
@@ -267,7 +279,7 @@ describe('Validating browser validator contracts...', () => {
     it('infers primary tab labels and scopes requested grid assertions', () => {
         const plan = createValidationPlan(source, { deferred: checks.deferred });
         assert.deepEqual(plan.tabs, ['Overview', 'Details']);
-        assert.equal(plan.itemCount, 8);
+        assert.equal(plan.itemCount, 9);
         assert.equal(plan.deferred[0].tab, 'Overview');
         assert.equal(plan.deferred[0].minRows, 2);
         assert.equal(plan.deferred[0].maxRows, 2);
@@ -483,6 +495,10 @@ describe('Validating browser validator contracts...', () => {
         assert.equal(report.sourceSha256, crypto.createHash('sha256').update(emptySource).digest('hex'));
         assert.deepEqual(report.tabsVisited, []);
         assert.equal(report.dataContractsChecked, 0);
+        assert.equal(report.coverageLevel, 'smoke-only');
+        assert.include(report.coverage, 'tab navigation is not query validation');
+        assert.deepEqual(report.panelChecks, []);
+        assert.deepEqual(report.sourceDiagnostics, []);
         assert.equal(report.parameterActionsClicked, 0);
         assert.include(report.coverage, 'no-data is not proof of health');
         assert.isFalse(report.workbookSaved);
@@ -500,6 +516,46 @@ describe('Validating browser validator contracts...', () => {
         assert.isTrue(editor.state.readingToolbarConfirmed);
     });
 
+    it('checks eager grids through the same shared and generated contract path without parameter actions', async () => {
+        for (const generated of [false, true]) {
+            const editor = editorPage(emptySource);
+            const original = editor.frame.getByRole.bind(editor.frame);
+            editor.frame.getByRole = (role, options = {}) => role === 'heading' && options.name === 'Eager table' ? {
+                async waitFor() {},
+                count: async () => 1,
+                locator: () => ({
+                    count: async () => 1,
+                    evaluate: async () => ({ settled: true }),
+                    getByRole: () => ({ evaluate: async callback => callback({
+                        getAttribute: () => '3',
+                        querySelectorAll: () => [{ textContent: 'Label' }, { textContent: 'Count' }]
+                    }) })
+                })
+            } : original(role, options);
+            const options = { tenant: testTenant, panels: [{ heading: 'Eager table', minRows: 2, maxRows: 2, columns: ['Label', 'Count'] }] };
+            const run = generated ? vm.runInNewContext(`(${createPlaywrightScript(emptySource, options)})`) : null;
+            const report = run ? await run(editor.page) : await validateWorkbookInBrowser(editor.page, emptySource, options);
+            assert.equal(report.dataContractsChecked, 1);
+            assert.equal(report.panelChecks[0].grid.rows, 2);
+            assert.equal(report.parameterActionsClicked, 0);
+            assert.equal(report.coverageLevel, 'requested-data-contracts');
+            assert.deepEqual(editor.state.clicks, ['Apply', 'Done Editing']);
+        }
+    });
+
+    it('reports static source risks without rewriting a workbook or upgrading smoke coverage', async () => {
+        const editor = editorPage(emptySource);
+        const workbook = JSON.stringify({ version: 'Notebook/1.0', items: [{
+            type: 3, content: { gridSettings: { formatters: [{ formatOptions: {
+                thresholdsGrid: [{ thresholdValue: 1 }]
+            } }] } }
+        }] });
+        const report = await validateWorkbookInBrowser(editor.page, workbook);
+        assert.equal(editor.state.value, workbook);
+        assert.equal(report.sourceDiagnostics[0].code, 'non-string-threshold');
+        assert.equal(report.coverageLevel, 'smoke-only');
+    });
+
     it('activates tabs with the native keyboard path and confirms the selected state', async () => {
         const editor = editorPage(emptySource);
         const original = editor.frame.getByRole.bind(editor.frame);
@@ -513,6 +569,7 @@ describe('Validating browser validator contracts...', () => {
                 if (!options.name) return { allTextContents: async () => ['Overview', 'Details'] };
                 return {
                     async isEnabled() { return true; },
+                    async focus() {},
                     async press(key) {
                         assert.equal(key, 'Enter');
                         selected = options.name;
@@ -545,6 +602,7 @@ describe('Validating browser validator contracts...', () => {
             async waitFor() { mounted = true; },
             async scrollIntoViewIfNeeded() {},
             async isEnabled() { return true; },
+            async focus() {},
             async press() { clicked = true; }
         };
         editor.frame.getByRole = (role, options = {}) => {
@@ -576,11 +634,13 @@ describe('Validating browser validator contracts...', () => {
         await activateWorkbookControl({
             async waitFor(options) { calls.push(['visible', options]); },
             async isEnabled(options) { calls.push(['enabled', options]); return true; },
+            async focus(options) { calls.push(['focus', options]); },
             async press(key, options) { calls.push([key, options]); }
         }, 75);
         assert.deepEqual(calls, [
             ['visible', { state: 'visible', timeout: 75 }],
             ['enabled', { timeout: 75 }],
+            ['focus', { timeout: 75 }],
             ['Enter', { timeout: 75 }]
         ]);
     });
@@ -593,6 +653,7 @@ describe('Validating browser validator contracts...', () => {
             async waitFor() {},
             async scrollIntoViewIfNeeded() {},
             async isEnabled() { return true; },
+            async focus() {},
             async press() { activations++; }
         };
         editor.frame.getByRole = (role, options = {}) => options.name === 'Show details' ?
@@ -756,7 +817,7 @@ describe('Validating explicit tenant selection...', () => {
         }, testTenant), /Cannot verify/);
     });
 
-    it('stops tab execution when the selected directory changes after source import', async () => {
+    it('stops before Apply when the selected directory changes after source import', async () => {
         const editor = editorPage(emptySource);
         let checks = 0;
         const account = accountPage([otherTenantId]);
@@ -770,7 +831,18 @@ describe('Validating explicit tenant selection...', () => {
         } : original(role, options))(editor.frame.getByRole.bind(editor.frame));
         await rejects(validateWorkbookInBrowser(editor.page, source), /signed-in tenant is different/);
         assert.equal(editor.state.writes, 1);
-        assert.deepEqual(editor.state.clicks, ['Apply', 'Done Editing']);
+        assert.deepEqual(editor.state.clicks, []);
+    });
+
+    it('reverifies the directory before leaving edit mode instead of continuing after a directory change', async () => {
+        const editor = editorPage(emptySource);
+        const original = editor.page.getByRole;
+        const other = accountPage([otherTenantId]);
+        let checks = 0;
+        editor.page.getByRole = (role, options) => role === 'button' && ++checks > 2 ?
+            other.getByRole(role, options) : original(role, options);
+        await rejects(validateWorkbookInBrowser(editor.page, emptySource), /signed-in tenant is different/);
+        assert.deepEqual(editor.state.clicks, ['Apply']);
     });
 
     it('emits a runner that pauses without touching a browser if approval is absent', async () => {
@@ -939,7 +1011,7 @@ describe('Validating optional screenshot safeguards...', () => {
         assert.deepEqual(missing.cell.attributes, {});
     });
 
-    function screenshotPage({ fail = false, masks = 3, blockedRedaction = false } = {}) {
+    function screenshotPage({ fail = false, masks = 3, blockedRedaction = false, blockedIsolation = false, timeout = 30000 } = {}) {
         const calls = [];
         const cleanedRootAttributes = [];
         const body = {
@@ -972,7 +1044,22 @@ describe('Validating optional screenshot safeguards...', () => {
                 return body;
             }
         };
-        const page = { locator: () => ({ contentFrame: () => frame }) };
+        const page = { locator: () => ({
+            count: async () => 1,
+            contentFrame: () => frame,
+            async evaluate(callback) {
+                if (callback === isolateScreenshotFrame) {
+                    calls.push('isolate');
+                    if (blockedIsolation) throw new Error('parent isolation blocked');
+                } else if (callback === verifyScreenshotIsolation) {
+                    calls.push('verify-isolation');
+                } else if (callback === restoreScreenshotIsolation) {
+                    calls.push('restore-isolation');
+                } else {
+                    throw new Error('Unexpected parent document callback.');
+                }
+            }
+        }) };
         const target = {
             async screenshot(options) {
                 calls.push('capture');
@@ -980,6 +1067,7 @@ describe('Validating optional screenshot safeguards...', () => {
                 assert.isUndefined(options.style);
                 assert.equal(options.animations, 'disabled');
                 assert.equal(options.caret, 'hide');
+                assert.equal(options.timeout, timeout);
                 assert.match(options.path, /^C:\\private-evidence\\capture-[a-z0-9-]+\.png$/);
                 if (fail) throw new Error('simulated capture failure');
             }
@@ -991,7 +1079,8 @@ describe('Validating optional screenshot safeguards...', () => {
         const fixture = screenshotPage();
         const result = await captureMaskedScreenshot(fixture.page, fixture.target,
             { directory: 'C:\\private-evidence', maskSelectors: [] }, ['Approved heading'], 0);
-        assert.deepEqual(fixture.calls, ['mask', 'redact', 'capture', 'cleanup']);
+        assert.deepEqual(fixture.calls, ['mask', 'redact', 'isolate', 'verify-isolation', 'capture', 'verify-isolation', 'cleanup', 'restore-isolation']);
+        assert.isTrue(result.parentIsolated);
         assert.isTrue(result.reviewRequired);
         assert.equal(result.redaction, 'auto');
         assert.isFalse(result.publicationApproved);
@@ -1006,7 +1095,7 @@ describe('Validating optional screenshot safeguards...', () => {
         const fixture = screenshotPage({ fail: true });
         await rejects(captureMaskedScreenshot(fixture.page, fixture.target,
             { directory: 'C:\\private-evidence', maskSelectors: [] }, ['Approved heading'], 1), /simulated capture failure/);
-        assert.deepEqual(fixture.calls, ['mask', 'redact', 'capture', 'cleanup']);
+        assert.deepEqual(fixture.calls, ['mask', 'redact', 'isolate', 'verify-isolation', 'capture', 'cleanup', 'restore-isolation']);
     });
 
     it('refuses mask-free captures while cleaning the temporary capture scope', async () => {
@@ -1017,24 +1106,18 @@ describe('Validating optional screenshot safeguards...', () => {
     });
 
     it('captures unredacted content only through a distinct explicitly approved path', async () => {
-        const calls = [];
-        const page = { locator() { throw new Error('Unredacted capture must not install or pretend to apply masks.'); } };
-        const target = { async screenshot(options) {
-            assert.isUndefined(options.mask);
-            assert.isUndefined(options.style);
-            calls.push(options.path);
-        } };
-        await rejects(captureWorkbookScreenshot(page, target,
+        const fixture = screenshotPage();
+        await rejects(captureWorkbookScreenshot(fixture.page, fixture.target,
             { directory: 'private', redaction: 'none' }, [], 0), /PAUSED/);
-        assert.lengthOf(calls, 0);
-        const result = await captureWorkbookScreenshot(page, target,
-            { directory: 'private', redaction: 'none', allowSensitiveCapture: true }, [], 0);
-        assert.lengthOf(calls, 1);
+        assert.lengthOf(fixture.calls, 0);
+        const result = await captureWorkbookScreenshot(fixture.page, fixture.target,
+            { directory: 'C:\\private-evidence', redaction: 'none', allowSensitiveCapture: true }, [], 0);
+        assert.deepEqual(fixture.calls, ['isolate', 'verify-isolation', 'capture', 'verify-isolation', 'restore-isolation']);
         assert.equal(result.redaction, 'none');
         assert.equal(result.maskedElements, 0);
         assert.isTrue(result.reviewRequired);
         assert.isFalse(result.publicationApproved);
-        await rejects(captureMaskedScreenshot(page, target,
+        await rejects(captureMaskedScreenshot(fixture.page, fixture.target,
             { directory: 'private', redaction: 'none', allowSensitiveCapture: true }, [], 0), /Masked capture requires/);
     });
 
@@ -1046,7 +1129,7 @@ describe('Validating optional screenshot safeguards...', () => {
             }, ['Approved heading'], 0);
             assert.equal(result.redaction, redaction);
             assert.isFalse(result.publicationApproved);
-            assert.deepEqual(fixture.calls, ['mask', 'redact', 'capture', 'cleanup']);
+            assert.deepEqual(fixture.calls, ['mask', 'redact', 'isolate', 'verify-isolation', 'capture', 'verify-isolation', 'cleanup', 'restore-isolation']);
         }
     });
 
@@ -1055,6 +1138,24 @@ describe('Validating optional screenshot safeguards...', () => {
         await rejects(captureMaskedScreenshot(fixture.page, fixture.target,
             { directory: 'C:\\private-evidence', maskSelectors: [] }, ['Approved heading'], 3), /redaction blocked/);
         assert.deepEqual(fixture.calls, ['mask', 'redact', 'cleanup']);
+    });
+
+    it('never captures when parent-page overlay isolation is unavailable', async () => {
+        const fixture = screenshotPage({ blockedIsolation: true });
+        await rejects(captureMaskedScreenshot(fixture.page, fixture.target,
+            { directory: 'C:\\private-evidence' }, ['Approved heading'], 4), /parent isolation blocked/);
+        assert.deepEqual(fixture.calls, ['mask', 'redact', 'isolate', 'cleanup']);
+    });
+
+    it('passes the requested operation timeout through to screenshot capture', async () => {
+        const fixture = screenshotPage({ timeout: 75 });
+        await captureMaskedScreenshot(fixture.page, fixture.target,
+            { directory: 'C:\\private-evidence' }, ['Approved heading'], 4, 75);
+        assert.ok(fixture.calls.includes('capture'));
+        const invalid = screenshotPage();
+        await rejects(captureMaskedScreenshot(invalid.page, invalid.target,
+            { directory: 'C:\\private-evidence' }, ['Approved heading'], 4, 0), /operation timeout/);
+        assert.deepEqual(invalid.calls, []);
     });
 
     it('refuses capture if the browser blocks or ignores DOM redaction styles', () => {
@@ -1123,6 +1224,20 @@ describe('Validating browser script generation...', () => {
         assert.equal(fs.readFileSync(output, 'utf8'), 'keep this file');
     });
 
+    it('prints only source diagnostic codes and item indexes, not query contents', () => {
+        const workbook = path.join(directory, 'risk.json');
+        const output = path.join(directory, 'risk.js');
+        fs.writeFileSync(workbook, JSON.stringify({ version: 'Notebook/1.0', items: [{
+            type: 3, content: {
+                query: 'private-test-query-value',
+                gridSettings: { formatters: [{ formatOptions: { thresholdsGrid: [{ thresholdValue: 1 }] } }] }
+            }
+        }] }));
+        const result = generate(['--workbook', workbook, '--output', output]);
+        assert.equal(result.status, 0, result.stderr);
+        assert.include(result.stdout + result.stderr, 'non-string-threshold (item 0)');
+        assert.notInclude(result.stdout + result.stderr, 'private-test-query-value');
+    });
     it('fails explicitly for missing arguments and unknown switches', () => {
         const missing = generate([]);
         assert.equal(missing.status, 1);

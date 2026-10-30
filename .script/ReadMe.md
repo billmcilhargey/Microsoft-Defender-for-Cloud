@@ -68,7 +68,7 @@ Since it is run locally you will see "Azure DevOps CI for a Pull Request wasn't 
 Adapted from [microsoft/Application-Insights-Workbooks#3260](https://github.com/microsoft/Application-Insights-Workbooks/pull/3260),
 at commit `01e1ba4daf9bdc6727b84a4525f781568bbdb5bc`. The shared
 [Mocha/Playwright validator](./workbook-browser/workbookBrowserValidator.js) adds source-import,
-primary-tab, deferred-content and grid contracts without deploying or saving a workbook.
+primary-tab, eager-panel, deferred-content and grid contracts without deploying or saving a workbook.
 It complements JSON syntax validation; it does not certify every query or workbook workflow.
 
 ### Offline tests and supported inputs
@@ -88,7 +88,7 @@ without Azure credentials, CDP access, browser installation or portal navigation
 `playwright-core` does not download browsers. Authenticated tests are outside normal test discovery
 and run only with `npm run test:browser`.
 
-Unlike the upstream repository, Defender for Cloud stores workbooks in several formats.
+Unlike the upstream repository, Microsoft Defender for Cloud stores workbooks in several formats.
 The [source loader](./workbook-browser/workbookSource.js) supports:
 
 - Native `Notebook/1.0` documents with an `items` array, regardless of `.workbook` or `.json` extension.
@@ -124,9 +124,11 @@ Reader permissions at the agreed scopes: rendering real workbooks can execute qu
 In the current **English-language React workbook view**, open a **new empty unsaved workbook**,
 open **Advanced Editor**, and leave its default empty JSON in place. Do not paste the template first.
 
-The runner verifies the selected directory GUID from the portal account-menu metadata before import
-and rechecks before tab changes, parameter actions and screenshots. Missing, ambiguous or mismatched
-tenant evidence pauses the run; it never switches tenants. It refuses saved/non-empty workbooks and
+The runner verifies all parenthesized directory-GUID candidates in portal account-menu metadata,
+not the first GUID in a display name. Conflicting candidates fail closed. It rechecks before import,
+Apply, leaving edit mode, tab changes, parameter actions and screenshots. Missing, ambiguous or mismatched
+tenant evidence pauses the run; it never switches tenants or automates sign-in after a session reset.
+It refuses saved/non-empty workbooks and
 selects only the Monaco model bound to the visible editor. It never clicks Save or ARM action links.
 Tenant IDs, account details and record values are not included in its report.
 
@@ -180,8 +182,8 @@ The local `.playwright-mcp/` output folder is ignored by Git.
 
 ### Contract coverage
 
-The [example checks](./workbook-browser/fixtures/smoke-checks.json) exercise two tabs and one
-parameter action revealing both a two-row table and text, with the producer hidden afterward.
+The [example checks](./workbook-browser/fixtures/smoke-checks.json) exercise two tabs, an eager two-row
+table, and one parameter action revealing both a two-row table and text with the producer hidden afterward.
 Supported options are:
 
 - `tabs`: exact primary tab labels in order. Static labels are inferred; parameterized labels need
@@ -189,11 +191,33 @@ Supported options are:
 - `timeout`: per-operation timeout, 1 to 120000 milliseconds; default 30000.
 - `tenant`: a private per-run `{ "id": "<user-selected-tenant-guid>", "confirmed": true }` object,
   preferably supplied through CLI/environment rather than a committed checks file.
+- `panels`: eager/initially visible panel contracts with `heading` and optional `tab` (defaults to the
+  first primary tab). No trigger or workbook-specific action is invented for these checks.
 - `deferred`: an array with `trigger` (one unique parameter-link label), `heading` (one content heading),
   optional `tab` (defaults to the first primary tab), and optional `hideTriggerAfterLoad`.
-- `minRows`, `maxRows`, `columns`: optional fields on each deferred check for exact ordered column
+- `minRows`, `maxRows`, `columns`: optional fields on each panel or deferred check for exact ordered column
   display labels and inclusive row bounds. Counts use `aria-rowcount` minus the header, not virtualized
-  DOM rows. A missing result grid or unreliable count fails; no-data is not proof of health.
+  DOM rows. In grouped grids, these are the current ARIA view entries, not unique resources or the full
+  backend result set. A missing result grid or unreliable count fails; no-data is not proof of health.
+- `allowTruncated`: a boolean on a panel/deferred check, default `false`. A recognized portal result-limit
+  warning fails the contract unless explicitly accepted. Accepted truncation is reported with aggregate
+  returned/total counts; it does not qualify a complete inventory.
+
+For example, validate an existing grid without requiring a deferred-load button:
+
+```json
+{
+  "panels": [
+    { "heading": "Summary table", "minRows": 1, "columns": ["Label", "Count"] }
+  ]
+}
+```
+
+Each requested panel must become visible and quiet for 250 milliseconds within the operation timeout.
+The observer waits through initial loading, detects the renderer's `Error loading item` state, and
+refuses missing/ambiguous grids, replaced panels and sustained refresh churn. Only aggregate counts
+and requested labels are reported; record values and raw DOM/console output are not collected.
+Panel checks run before that tab's screenshot so opted-in captures follow the requested readiness checks.
 
 Checks sharing a tab and trigger are grouped: all headings must be unmounted before the ready trigger
 is activated once, then every requested panel contract is checked. A self-hiding producer needs its
@@ -206,13 +230,26 @@ stop the check; there is no frame-wide label fallback. The matched control must 
 requested accessible label and cannot have an external/action `href`. Renderer versions that
 do not expose this identity contract are unsupported for automatic deferred activation.
 
-The runner uses enabled-state-checked native Enter-key activation and confirms tab selection.
-Visibility waits, enabled-state checks, keyboard activation and deferred-control scrolling all
+The runner explicitly focuses enabled controls before native Enter-key activation and confirms tab selection.
+Visibility waits, enabled-state checks, focus, keyboard activation and deferred-control scrolling all
 receive the configured per-operation timeout, including in the generated runner.
+There is no forced click, mouse fallback or automatic action retry if keyboard activation fails.
 This tests the accessible path, not mouse hit testing. Nested-tab interactions, filters, graphs,
 query correctness, resource coverage and arbitrary workflows still need scenario-specific tests.
-The JSON report includes the normalized source hash, visited labels, requested contract results and
-aggregate counts, with explicit coverage limits and `workbookSaved: false`. Review even labels before
+
+Planning also returns nonfatal `sourceDiagnostics`: `non-string-threshold` flags formatter values
+that can crash the string-based portal renderer, and `global-input-export-cycle-risk` flags a query
+that exports a global parameter it directly consumes. These are review risks, not a complete KQL or
+dependency analysis; intentional global brushing can be valid. Diagnostics contain codes/item indexes,
+not source values, and never rewrite the exact workbook being imported.
+
+The JSON report includes the normalized source hash, visited labels, eager/deferred contract results,
+source diagnostics and aggregate counts, with explicit coverage limits and `workbookSaved: false`.
+`coverageLevel: "smoke-only"` means no query-data contract was qualified; successful source import and
+tab navigation must not be reported as healthy queries or live qualification. `requested-data-contracts`
+still describes only the explicit contracts, not workbook-wide certification. Distinguish an isolated
+synthetic browser run from an actual authenticated portal run, and report which exact source revision
+was tested if the workbook changes afterward. Review even labels before
 publishing summaries; never publish generated scripts or browser profiles as test evidence.
 
 ### Optional local screenshots
@@ -231,7 +268,13 @@ with `--screenshots "C:\private-evidence\workbook-check"` for the generator, or
 ```
 
 `auto` is the default redaction mode. It masks data cells, inputs, non-contract text and media before
-capture, retaining only exact contract labels, and excludes surrounding portal/account chrome.
+capture, retaining only exact contract labels. Element cropping alone cannot exclude overlapping
+portal/account chrome: every capture also temporarily isolates the workbook iframe from the parent
+document's paints, including existing and newly added overlays and top-layer controls.
+The isolation is monitored throughout capture and restored in `finally`, including on capture errors.
+Blocked isolation and unsupported parent shadow-root/nested-frame environments refuse capture rather
+than falling back to an exposed image. This parent isolation also applies to selectively redacted and
+explicitly approved unredacted workbook captures.
 Additional selectors add masks and must match at every capture stage. Redaction uses DOM CSS with a
 computed-style probe; blocked redaction fails capture without an unmasked fallback. Temporary
 markers/styles are removed even after errors. Output paths must be local, without URLs, network paths
