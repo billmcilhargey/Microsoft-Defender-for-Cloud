@@ -1,6 +1,6 @@
 ---
 name: update-workbook-attribution
-description: 'Use when standardizing workbook README.md filenames, linking original authors to GitHub profiles, or updating human Contributors from Git history. Verify public profile display names and co-authors, follow renamed paths, exclude bots and automation, preserve original credit, and validate case-sensitive links.'
+description: 'Use when standardizing workbook README.md filenames, linking original authors to GitHub profiles, or updating human Contributors from Git history. Verify profile names and co-authors, deduplicate Author/Contributor credits, follow renamed paths, exclude bots and automation, preserve original credit, and validate case-sensitive links.'
 ---
 
 # Update workbook README attribution
@@ -31,7 +31,7 @@ Use this workflow for any workbook folder; do not assume a particular product, t
 4. Exclude GitHub accounts of type `Bot`, bot-suffixed logins, and verified service/agent identities such as Copilot, GitHub Actions, Dependabot, and web-flow. Never exclude a human solely because a username contains words such as "bot", "agent", or "automation".
 5. Credit authors and verified human co-authors, not a committer who merely applied someone else's change. Existing automation co-author trailers may remain in Git history; excluding them from this list does not authorize rewriting commits.
 6. Use the public profile's current display name exactly; if it is blank, use the username. Link to the verified canonical profile URL.
-7. Deduplicate aliases by verified account. Do not merge people just because their display names match.
+7. Deduplicate aliases by verified account across the entire attribution block, not separately within each section. Do not merge people just because their display names match.
 8. If an apparent human cannot be linked confidently, preserve established plain-text credit and report the unresolved identity. Do not invent a profile URL or silently discard a person. Keep emails, tokens, private profile data, and identity guesses out of the README and any evidence.
 
 ## 4. Use a consistent attribution block
@@ -44,13 +44,14 @@ Prefer **Original author** when retaining the person who introduced the workbook
 ## Contributors
 
 - [Contributor display name](https://github.com/contributor)
-- [Original author's display name](https://github.com/original-author)
 ```
 
-- List all verified human contributors, including the original author, using Markdown profile links.
+- List only additional verified human contributors who are not already credited under **Author**, **Authors**, **Original author**, or **Original authors**, using Markdown profile links.
+- Compare verified canonical GitHub logins case-insensitively across all author and contributor entries. An author's contribution is already represented by their author credit; remove only the duplicate contributor entry, not the author credit.
+- If no additional contributors remain, omit the Contributors section rather than repeating an author or leaving an empty list.
 - Sort deterministically by displayed name, then username. Do not add contribution counts, rankings, inferred roles, or stale employment titles.
 - Preserve relevant original organizational/program credit without inventing a current affiliation.
-- Add a short scope note: human authors/co-authors from this workbook folder's history, including the current change set; automation and merge-only credits are excluded.
+- Add a short scope note: additional human contributors from this workbook folder's history, including the current change set; authors are credited above, and automation and merge-only credits are excluded.
 - Escape Markdown punctuation in profile display names without changing the displayed name.
 - Treat the list as a reviewed snapshot, not an automatically complete or continuously synchronized service.
 
@@ -70,8 +71,8 @@ Prefer **Original author** when retaining the person who introduced the workbook
 
 ## 6. Validate and report
 
-1. Check that the README's original-author link and contributor links exactly match the verified human profile set, with no duplicates, bots, service accounts, or guessed identities.
-2. Confirm every historical human contributor is accounted for, including deployment/documentation-only contributions and verified co-authors.
+1. Check that the union of author and contributor links exactly matches the verified human profile set. No account may appear twice within or across sections; exclude bots, service accounts, and guessed identities.
+2. Confirm every historical human contributor is represented exactly once, either as an author or an additional contributor, including deployment/documentation-only contributions and verified co-authors.
 3. Verify exact `README.md` casing, updated local links, and absence of the temporary rename file. Run the repository's existing Markdown checks and `git diff --check`.
 4. For this skill file, validate YAML frontmatter, matching folder/name, meaningful description, and relative resource links.
 5. Keep attribution evidence as a small private/session report containing reviewed revisions, relevant commit SHAs, verified public names/logins/profile URLs, exclusions, and unresolved cases. Do not retain email addresses or credentials.
