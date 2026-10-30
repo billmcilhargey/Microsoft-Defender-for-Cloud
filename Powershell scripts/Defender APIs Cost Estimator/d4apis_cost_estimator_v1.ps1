@@ -109,4 +109,6 @@ Write-Information "Standalone JSON and CSV reports exported to '$OutputDirectory
 if (@($issues | Where-Object Severity -EQ 'Error').Count) {
     throw "Collection encountered errors. Partial evidence was exported to '$OutputDirectory'; review DefenderForApis-Issues.csv. Affected recommendations are withheld."
 }
-if ($issues.Count) { Write-Warning 'Some estimates need review. Check the workbook Data quality tab before using costs.' }
+if ($issues.Count) {
+    Write-Warning "Some estimates need review. Check '$(Join-Path $OutputDirectory 'DefenderForApis-Issues.csv')' before using costs."
+}

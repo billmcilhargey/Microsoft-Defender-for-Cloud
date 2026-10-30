@@ -1,6 +1,6 @@
 # Microsoft Defender for APIs - Price Estimation
 
-**Version 1.6**
+**Version 1.7**
 
 A self-contained, live workbook following the
 [Defender for Storage Price Estimation](../Microsoft%20Defender%20for%20Storage%20Price%20Estimation/README.md)
@@ -38,8 +38,16 @@ on those selections. If no single service is resolved, the main page explains wh
 cost recommendations are not yet calculated.
 
 **Enabled** is the subscription setting, not proof that every API is onboarded.
+The plan can remain enabled with P1 configured even when no APIM services are
+visible. Configuration alone does not establish protected traffic or actual charges.
 **In trial** is Yes when reported trial time remains, No for `PT0S`, and Unknown
 when trial data is unavailable.
+
+**Assessment records returned** reports the number of onboarding assessments
+returned by Resource Graph. If none are returned, assessed API counts are blank
+and **Assessment evidence** explicitly reports Unknown, not zero eligible APIs.
+When records exist, a zero count means zero matching records in that returned
+assessment set; the set still is not proof of complete API inventory.
 
 Costs display as **USD with two decimal places**. Request counts and costs remain
 numeric for sorting and export. Empty cost cells mean **not calculated**, not zero.
@@ -54,7 +62,7 @@ The optional per-API grid retains its detailed record export.
 
 | File | Use |
 | --- | --- |
-| [D4ApisDeployment.json](./D4ApisDeployment.json) | Paste-ready workbook JSON with all live queries built in. |
+| [D4ApisDeployment.json](./D4ApisDeployment.json) | Paste-ready workbook JSON with embedded live queries. |
 | [armTemplate.json](./armTemplate.json) | ARM template deploying the same saved workbook. |
 
 This directory contains only those two JSON files and this README.
@@ -101,7 +109,8 @@ workbook's GUID as `workbookId` when updating; the default `newGuid()` otherwise
 creates another workbook.
 
 **Permissions:** read access to selected subscriptions, APIM services/APIs,
-metrics, Defender pricing and API collections. Optional log queries require
+metrics, registered gateways (`Microsoft.ApiManagement/service/gateways/read`),
+Defender pricing and API collections. Optional log queries require
 Log Analytics query access. Saving/deploying also requires workbook-write
 permission on the destination resource group. No plan-write or API-onboarding
 permission is needed.
@@ -120,10 +129,12 @@ complete child-API inventory.
 The embedded queries also use:
 
 - **ARM GET/GETARRAY** for the actual API inventory, APIM tier/regions, configured
-  subscription plan and onboarded collections. `GETARRAY` follows list pagination.
+  subscription plan, onboarded collections and registered gateways.
+  `GETARRAY` follows list pagination.
 - **Azure Monitor Metrics REST** for per-API `Requests`, `Total`, `interval=FULL`
   over the same last-30-day window. These feed eligibility-aware calculations;
-  the optional native metric grid shows whole-service requests, not protected traffic.
+  the optional native metric grid shows whole-service requests, which can include
+  self-hosted traffic and are not a protected-traffic billing meter.
 - **Optional existing Log Analytics gateway logs** for a subscription-wide model
   across multiple APIM services.
 
@@ -138,10 +149,14 @@ time**. A hidden resource picker resolves only an exactly-one-service scope;
 All/several selections with multiple matching services leave detail queries
 deferred. An All scope containing only one service can safely resolve that service.
 An independent readiness check also verifies that the resolved resource matches
-that sole service, so a stale picker value cannot start detail requests.
+that sole service and its derived subscription, so a stale picker value cannot
+start detail requests. Gates use the supported singular `conditionalVisibility`
+property. The log section has a combined single-service/workspace readiness gate.
 The detail subscription is derived from the selected APIM resource, not from the All marker
 or a list of subscriptions. No All marker, unresolved first-resource marker or
 resource list is passed to the per-service ARM/Metrics calls.
+The automatic detail subscription is optional in All/multiple-service mode:
+an unset value is expected there and is not a required user input.
 Its API counts are selected-service counts, not a multi-service fleet total.
 Reported assessment counts are labeled separately because they can lag or omit
 APIs; they are not a replacement for full inventory.
@@ -165,6 +180,15 @@ selected APIM is the subscription's **sole APIM service**. It compares:
 All P1-P5 fees **plus overages** are compared. An existing plan tied for minimum
 modeled cost is retained. For example, two million calls favor P1 at USD 400,
 even though they exceed its one-million-call allowance; P2 would cost USD 700.
+
+Metric-based guidance requires a successful registered-gateway inventory with
+no self-hosted gateways. Self-hosted gateways emit Requests to Azure Monitor by
+default, and that metric has no gateway-type dimension. If such gateways exist
+or their inventory is unknown, the workbook withholds metric-based guidance
+rather than treating all traffic as managed. The native whole-service metric
+grid remains diagnostic only.
+This is a current-configuration model; it does not reconstruct historical gateway
+changes during the 30-day window.
 
 For subscriptions with multiple APIM services, these metric-based recommendations
 are withheld rather than treating one instance as the subscription total.
@@ -198,12 +222,17 @@ The workbook does not enable diagnostic settings, change retention or ingest log
   this scope. Revisions share one logical API collection.
 - Grids display at most **1,000 rows**. Resource Graph calculations expand at most
   **2,000 raw rows per array**; exceeding the required API, collection or metric
-  limit withholds recommendations. Partial counts are labeled as lower bounds.
+  limit withholds recommendations. Observed inventory counts can be lower bounds;
+  unmatched APIs in an incomplete onboarding inventory remain **Unknown**. Do not
+  infer protection-gap totals from truncated membership.
   At large subscription scopes, a truncated coverage grid is not a tenant-wide
   total; narrow the subscription selection.
 - Split API traffic must reconcile to whole-service totals. Missing/null samples,
   read failures, unknown plans, pending onboarding and incomplete required scope
   mean **not calculated**, never zero. Explicit numeric zero samples are valid.
+- API identifiers are URI-decoded before revision suffix removal in inventory,
+  onboarded collections, metric series and log joins. Encoded revision traffic
+  contributes to its logical API instead of being silently dropped.
 - This is a current-configuration planning model, not an invoice or a detection
   health attestation. Historical onboarding/deletions, recent APIs, calendar-month
   entitlements, hourly fees, trials, agreements, credits and seasonality can differ.
@@ -216,9 +245,16 @@ portal Advanced Editor. Keep it identical to the JSON parsed from
 `resources[0].properties.serializedData` in [armTemplate.json](./armTemplate.json).
 Update both files together; no separate query folder, build script or runtime
 dependency is needed.
+Optional empty GET body/header/transform metadata and unused empty formatting
+properties are omitted. This preserves GET behavior and avoids the repository's
+pinned legacy ARM-TTK incorrectly flagging blank metadata inside serialized
+workbook JSON. The ARM deployment still contains the identical plain workbook
+JSON; it does not hide it in an encoded or concatenated expression.
 
 Local schema, KQL-parser and calculation checks do not replace a live Azure
 portal import or verification of actual telemetry in an approved environment.
+No added test files are shipped with this sample; regression fixtures used for
+validation stay outside the repository.
 
 ## Troubleshooting
 
@@ -239,7 +275,7 @@ Replace the saved workbook's entire template:
 2. In the portal, choose **Edit > Advanced Editor > Workbook Template**
    (**Gallery Template** in some versions). Select all existing contents and
    replace them; do not append the new JSON or paste the ARM deployment template.
-3. Select **Apply > Done Editing**. Confirm that the header says **Version 1.6**,
+3. Select **Apply > Done Editing**. Confirm that the header says **Version 1.7**,
    that **Show details** defaults to **Off**, and that there are **no coverage/cost
    tabs**, then **Save**.
 4. If the editor rejects the JSON, the old workbook remains active. Check for an
@@ -274,6 +310,10 @@ ingests its output or requires it for refresh.
 
 ## Version history
 
+- **1.7** - Corrected review findings: supported coverage-query joins, Unknown
+  missing assessments/onboarding membership, singular readiness gates, optional
+  automatic scope, URI-decoded revision joins and managed-gateway metric guards.
+  Removed added test files and corrected validation/documentation issues.
 - **1.6** - Simplified the main page to coverage and compact cost/plan summaries.
   Added opt-in service/API/diagnostic details and removed the duplicate API totals
   grid. Data reads, five-plan calculations and missing-data safeguards are retained.
@@ -295,3 +335,4 @@ ingests its output or requires it for refresh.
 - [Defender for APIs support](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-apis-prepare)
 - [Thirty-day sizing and billing guidance](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-apis-deploy)
 - [APIM metric reference](https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/microsoft-apimanagement-service-metrics)
+- [Self-hosted gateway metrics and logs](https://learn.microsoft.com/azure/api-management/how-to-configure-cloud-metrics-logs)

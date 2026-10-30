@@ -1,8 +1,10 @@
 # Defender for APIs - coverage and cost estimator
 
 The [PowerShell estimator](./d4apis_cost_estimator_v1.ps1) collects API inventory,
-subscription plan configuration and the last **30 days** of managed-gateway
-traffic. It exports standalone CSV/JSON evidence.
+subscription plan configuration and the last **30 days** of request metrics.
+It exports standalone CSV/JSON evidence. Metric-based guidance is withheld when
+self-hosted gateways are registered or their inventory cannot be read, because
+the Requests metric does not distinguish managed from self-hosted traffic.
 
 The [Defender for APIs cost workbook](../../Workbooks/Microsoft%20Defender%20for%20APIs%20Cost%20Estimation/README.md)
 now uses **native live Azure queries**. This optional script is **not** a workbook
@@ -66,6 +68,7 @@ scope and data-quality changes.
 Read access is required across each selected subscription:
 
 - `Microsoft.ApiManagement/service/read` and `Microsoft.ApiManagement/service/apis/read`
+- `Microsoft.ApiManagement/service/gateways/read`
 - `Microsoft.Insights/metrics/read`
 - `Microsoft.Security/pricings/read`
 - `Microsoft.Security/apiCollections/read`
@@ -111,13 +114,19 @@ as missing traffic are visible in the reports and do not become zero estimates.
 - Calls use `Requests`, `Total`, `interval=FULL`, with the same UTC window for all
   resources. `ApiId` split totals must reconcile to whole-service totals. A
   10,000-series ceiling is explicitly treated as truncation.
+- Before reading traffic for estimation, the collector reads the complete
+  registered-gateway inventory. Any registered self-hosted gateway makes the
+  managed traffic scope unverified and withholds metric-based recommendations.
+  An unreadable gateway inventory is an error, never an empty inventory.
+  The model assumes current gateway configuration across the window; historical
+  gateway changes require separate verification.
 - No matching series, null samples, failed requests and incomplete inventory are
   **unknown**, never zero. Only explicit numeric zero samples permit a zero-call
   model. An idle API may therefore require investigation before a recommendation
   is available.
 - The current-scope model requires successful onboarding inventory, a recognized
   subplan and complete telemetry for its onboarded APIs. Full-rollout estimates
-  additionally need every eligible API's usage. Missing usage on an unprotected
+  additionally need complete usage for all eligible APIs. Missing usage on an unprotected
   API does not invalidate an otherwise complete current-scope estimate.
 - Deleted APIs' historical traffic is not assigned to today's API inventory.
   APIs created recently may have less than 30 days of history; traffic is not
@@ -158,18 +167,18 @@ another agreement or currency. There is no live pricing lookup or automatic
 currency conversion during collection; the snapshot records the reference date.
 Invalid pricing is rejected, not silently replaced.
 
-## Tests
+## Validation
 
-From this directory, with Pester 5+ installed:
+From this directory, use PSScriptAnalyzer with all severities:
 
 ```powershell
-Invoke-Pester .\Tests\DefenderForApisCostEstimator.Tests.ps1 -Output Detailed
-Invoke-ScriptAnalyzer -Path . -Recurse -Severity Warning,Error
+Invoke-ScriptAnalyzer -Path . -Recurse -Severity Information,Warning,Error
 ```
 
-The tests cover cost thresholds, ties, partial onboarding, missing data,
-pagination, API revisions, CLI exports and independence from the workbook. They use
-synthetic fixtures and do not enable or query Azure resources.
+This sample does not bundle test files. Validation can use temporary synthetic
+fixtures outside the repository for pricing ties, gateway scope, pagination,
+revision normalization and missing-data behavior. Do not commit customer exports
+or credentials as validation data.
 
 ## References
 
@@ -177,6 +186,7 @@ synthetic fixtures and do not enable or query Azure resources.
 - [Supported tiers, API types, gateways and regions](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-apis-prepare)
 - [API revisions and APIM multi-resource metrics limitation](https://learn.microsoft.com/azure/defender-for-cloud/faq-defender-for-apis)
 - [APIM Requests metric and ApiId dimension](https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/microsoft-apimanagement-service-metrics)
+- [Self-hosted gateways emit Azure Monitor Requests by default](https://learn.microsoft.com/azure/api-management/how-to-configure-cloud-metrics-logs)
 - [Metrics REST API: FULL interval and default top-10 split limit](https://learn.microsoft.com/rest/api/monitor/metrics/list)
 - [Onboarded API collections REST API](https://learn.microsoft.com/rest/api/defenderforcloud/api-collections/list-by-subscription)
 - [Defender for Cloud pricing](https://azure.microsoft.com/pricing/details/defender-for-cloud/)

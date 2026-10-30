@@ -2,6 +2,10 @@
 Set-StrictMode -Version Latest
 
 function Get-D4ApiPricing {
+    <#
+    .SYNOPSIS
+    Loads and validates the complete five-plan pricing reference.
+    #>
     [CmdletBinding()]
     param([string]$Path = (Join-Path $PSScriptRoot 'pricing.json'))
 
@@ -35,6 +39,10 @@ function Get-D4ApiPricing {
 }
 
 function Get-D4ApiPlanCost {
+    <#
+    .SYNOPSIS
+    Calculates each plan's fixed fee and request overage for a traffic scenario.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][ValidateRange(0, [long]::MaxValue)][long]$Calls,
@@ -57,6 +65,10 @@ function Get-D4ApiPlanCost {
 }
 
 function ConvertTo-D4ApiKey {
+    <#
+    .SYNOPSIS
+    Decodes a final API identifier segment and removes its revision suffix.
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][AllowEmptyString()][string]$Value)
 
@@ -65,6 +77,10 @@ function ConvertTo-D4ApiKey {
 }
 
 function Invoke-D4ApiGet {
+    <#
+    .SYNOPSIS
+    Performs a bounded, authenticated read of Azure commercial Resource Manager.
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
 
@@ -106,6 +122,10 @@ function Invoke-D4ApiGet {
 }
 
 function Get-D4ApiPagedResource {
+    <#
+    .SYNOPSIS
+    Returns a complete ARM resource list only after every page succeeds.
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
 
@@ -128,6 +148,10 @@ function Get-D4ApiPagedResource {
 }
 
 function Get-D4ApiEligibility {
+    <#
+    .SYNOPSIS
+    Classifies an API against the documented tier, region and REST scope.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][System.Collections.IDictionary]$Service,
@@ -183,6 +207,10 @@ function Get-D4ApiEligibility {
 }
 
 function ConvertFrom-D4ApiMetric {
+    <#
+    .SYNOPSIS
+    Validates request samples and combines revision series by logical API.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][System.Collections.IDictionary]$Response,
@@ -242,12 +270,26 @@ function ConvertFrom-D4ApiMetric {
 }
 
 function Get-D4ApiUsage {
+    <#
+    .SYNOPSIS
+    Reads reconciled API traffic only when no self-hosted gateways are registered.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$ServiceId,
         [Parameter(Mandatory)][datetime]$StartTime,
         [Parameter(Mandatory)][datetime]$EndTime
     )
+
+    $gateways = @(Get-D4ApiPagedResource -Path "$ServiceId/gateways?api-version=2024-05-01")
+    if ($gateways.Count -gt 0) {
+        Write-Warning 'Registered self-hosted gateways can contribute Requests metrics. Managed-gateway traffic cannot be isolated; metric-based recommendations are withheld.'
+        return [pscustomobject]@{
+            Status = 'Managed gateway scope unverified'
+            Requests = $null
+            ByApi = @{}
+        }
+    }
 
     $timespan = [Uri]::EscapeDataString(
         "$($StartTime.ToUniversalTime().ToString('o'))/$($EndTime.ToUniversalTime().ToString('o'))")
@@ -278,6 +320,10 @@ function Get-D4ApiUsage {
 }
 
 function Get-D4ApiSubscriptionEstimate {
+    <#
+    .SYNOPSIS
+    Models rollout and current-coverage costs without treating missing data as zero.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$SubscriptionID,
@@ -313,6 +359,11 @@ function Get-D4ApiSubscriptionEstimate {
         $eligibleRequests = [long](($eligible | Measure-Object Requests30Days -Sum).Sum)
         $rolloutCosts = @(Get-D4ApiPlanCost -Calls $eligibleRequests -Plans $Plans)
         $recommended = $rolloutCosts | Sort-Object EstimatedMonthlyCost, Plan | Select-Object -First 1
+        $configuredRolloutCost = $rolloutCosts | Where-Object Plan -EQ $CurrentPlan | Select-Object -First 1
+        if ($DefenderStatus -eq 'Enabled' -and $configuredRolloutCost -and
+            $configuredRolloutCost.EstimatedMonthlyCost -eq $recommended.EstimatedMonthlyCost) {
+            $recommended = $configuredRolloutCost
+        }
         foreach ($cost in $rolloutCosts) {
             $row = [ordered]@{
                 SubscriptionID = $SubscriptionID; SubscriptionName = $SubscriptionName
@@ -386,6 +437,10 @@ function Get-D4ApiSubscriptionEstimate {
 }
 
 function Get-D4ApiSubscriptionReport {
+    <#
+    .SYNOPSIS
+    Collects read-only subscription configuration, API inventory and quality evidence.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$SubscriptionID,
