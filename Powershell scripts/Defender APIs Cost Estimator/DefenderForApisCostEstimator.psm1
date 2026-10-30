@@ -343,6 +343,7 @@ function Get-D4ApiSubscriptionEstimate {
     $missingEligible = @($eligible | Where-Object UsageStatus -NE 'Observed')
     $missingOnboarded = @($onboarded | Where-Object UsageStatus -NE 'Observed')
     $uncertainOnboarding = @($Apis | Where-Object { $_.OnboardingStatus -notin @('Onboarded', 'Not onboarded') })
+    $onboardingVerified = $OnboardingComplete -and $uncertainOnboarding.Count -eq 0
     $costs = [Collections.Generic.List[object]]::new()
     $eligibleRequests = $null
     $onboardedRequests = $null
@@ -377,7 +378,7 @@ function Get-D4ApiSubscriptionEstimate {
     $optimizationStatus = if ($DefenderStatus -eq 'Disabled') { 'Disabled - rollout estimate only' }
         elseif ($DefenderStatus -eq 'Unknown') { 'Unknown subscription plan status' }
         elseif (-not $InventoryComplete) { 'Incomplete inventory' }
-        elseif (-not $OnboardingComplete -or $uncertainOnboarding.Count) { 'Incomplete onboarding inventory' }
+        elseif (-not $onboardingVerified) { 'Incomplete onboarding inventory' }
         elseif (@($onboarded | Where-Object Eligibility -NE 'Eligible').Count) { 'Review onboarded API eligibility' }
         elseif ($CurrentPlan -notin @($Plans | ForEach-Object { $_.name })) { 'Unknown configured subplan' }
         elseif ($missingOnboarded.Count) { 'Incomplete onboarded-API telemetry' }
@@ -417,8 +418,8 @@ function Get-D4ApiSubscriptionEstimate {
         EligibleApis = $eligible.Count
         IneligibleApis = @($Apis | Where-Object Eligibility -EQ 'Not eligible').Count
         ReviewApis = $review.Count
-        OnboardedApis = $(if ($OnboardingComplete) { $onboarded.Count } else { $null })
-        UnprotectedEligibleApis = $(if ($OnboardingComplete -and $DefenderStatus -ne 'Unknown') {
+        OnboardedApis = $(if ($onboardingVerified) { $onboarded.Count } else { $null })
+        UnprotectedEligibleApis = $(if ($onboardingVerified -and $DefenderStatus -ne 'Unknown') {
             @($eligible | Where-Object { $_.ProtectionStatus -ne 'Onboarded - plan enabled' }).Count
         } else { $null })
         MissingUsageApis = $missingEligible.Count
@@ -550,6 +551,9 @@ function Get-D4ApiSubscriptionReport {
             $onboarded = if (-not $onboardingComplete) { 'Unknown' }
                 elseif (-not $collections.ContainsKey($apiId.ToLowerInvariant())) { 'Not onboarded' }
                 elseif ($collections[$apiId.ToLowerInvariant()] -eq 'Succeeded') { 'Onboarded' }
+                elseif ([string]::IsNullOrWhiteSpace($collections[$apiId.ToLowerInvariant()])) {
+                    'Unknown - provisioning state not returned'
+                }
                 else { "Review provisioning: $($collections[$apiId.ToLowerInvariant()])" }
             $usageStatus = $serviceRow.UsageStatus
             $requests = $null

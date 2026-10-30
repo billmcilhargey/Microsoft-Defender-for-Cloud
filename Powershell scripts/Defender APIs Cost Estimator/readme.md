@@ -133,12 +133,15 @@ as missing traffic are visible in the reports and do not become zero estimates.
   subplan and complete telemetry for its onboarded APIs. Full-rollout estimates
   additionally need complete usage for all eligible APIs. Missing usage on an unprotected
   API does not invalidate an otherwise complete current-scope estimate.
+- Onboarded and unprotected-eligible counts are unknown (null) when onboarding
+  evidence is incomplete, including missing or unverified provisioning states.
+  Complete request data can still support a prospective full-rollout model.
 - Deleted APIs' historical traffic is not assigned to today's API inventory.
   APIs created recently may have less than 30 days of history; traffic is not
   extrapolated to invent a full month. Metric availability does not prove that
   telemetry was uninterrupted.
-- Counts from an incomplete inventory are lower bounds. Workbook grids display
-  at most 10,000 rows; the JSON and CSV exports retain the collected results.
+- Discovered and eligibility counts from an incomplete inventory are lower bounds.
+  The JSON and CSV exports retain the collected results.
 
 ## Pricing
 
