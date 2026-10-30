@@ -66,6 +66,8 @@ Unused nullable formatter properties are omitted so ARM template validation can 
 ## Try on Portal
 You can deploy the workbook by clicking on the buttons below:
 
+The template uses the stable `2022-04-01` workbook API. `location` defaults to the resource-group region, and `workbookSourceId` defaults to the existing `azure security center` scope; both can be overridden at deployment.
+
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Security-Center%2Fmaster%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a>
 <a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Security-Center%2Fmaster%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazuregovbutton"/></a>
 
