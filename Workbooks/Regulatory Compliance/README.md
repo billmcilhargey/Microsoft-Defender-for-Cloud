@@ -1,7 +1,16 @@
 # Microsoft Defender for Cloud - Regulatory Compliance
-**Author: Vanessa Bruwer | Snr Customer Engineer, [FastTrack for Azure](https://aka.ms/fasttrackforazure)**
+**Original author:** [Vanessa Bruwer](https://github.com/vanessabruwer) | [FastTrack for Azure](https://aka.ms/fasttrackforazure)
 
 This workbook displays current Microsoft Defender for Cloud regulatory compliance results across selected subscriptions using Azure Resource Graph. It provides subscription-first compliance reporting, resource posture by workload, and control-level detail.
+
+## Contributors
+
+- [Dr Bill Mcilhargey](https://github.com/billmcilhargey)
+- [Lior Arviv](https://github.com/liorarviv)
+- [Vanessa Bruwer](https://github.com/vanessabruwer)
+
+Human authors and co-authors recorded in this workbook folder's Git history, including this change set. Automated accounts and merge-only credits are excluded. Names use each verified GitHub profile's display name, or its username when no display name is set.
+Use the [attribution workflow](../../.github/skills/update-workbook-attribution/SKILL.md) when refreshing this list.
 
 ## Views and filters
 
