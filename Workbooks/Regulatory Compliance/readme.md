@@ -1,7 +1,64 @@
-# Azure Defender - Regulatory Compliance
+# Microsoft Defender for Cloud - Regulatory Compliance
 **Author: Vanessa Bruwer | Snr Customer Engineer, [FastTrack for Azure](https://aka.ms/fasttrackforazure)**
 
-This workbook displays the Regulatory Compliance controls from Azure Defender across all subscriptions selected.
+This workbook displays current Microsoft Defender for Cloud regulatory compliance results across selected subscriptions using Azure Resource Graph. It provides subscription-first compliance reporting, resource posture by workload, and control-level detail.
+
+## Views and filters
+
+The **Subscription** and **Compliance standard** selectors apply to every tab. The standard selector defaults to all available standards rather than a hard-coded initiative.
+
+### Overview
+
+- Coverage cards show reporting versus selected subscriptions, assessed subscription-standard pairs, and subscription-standard pairs with failed controls. Repeated standards in different subscriptions are separate results.
+- Expand a subscription to compare its standards. Subscriptions with failing standards are sorted first.
+- Counts remain numeric. Pass percentage is calculated separately for each standard as `100 * passed / (passed + failed)`, excluding skipped and unsupported controls. A zero denominator is shown as **N/A**; overlapping standards are not averaged into a subscription compliance score.
+- Subscription status is the worst child result: failed takes precedence, incomplete/unassessed results remain neutral, and passed is shown only when the child results support it.
+- Select a standard row to open **Compliance Detail** with that standard and subscription selected.
+
+### Workloads
+
+Workload is an operational resource family, not a business application or a tag-based grouping. The resource hierarchy is **workload > subscription > resource > recommendation**.
+
+| Workload | Provider-qualified resource types |
+| --- | --- |
+| Compute | `Microsoft.Compute/*`, `Microsoft.HybridCompute/*` |
+| Containers | `Microsoft.ContainerService/*`, `Microsoft.ContainerRegistry/*`, `Microsoft.Kubernetes/*`, `Microsoft.App/containerApps*`, `Microsoft.App/managedEnvironments*` |
+| Databases | `Microsoft.Sql/*`, `Microsoft.SqlVirtualMachine/*`, `Microsoft.DBforPostgreSQL/*`, `Microsoft.DBforMySQL/*`, `Microsoft.DBforMariaDB/*`, `Microsoft.DocumentDB/*`, `Microsoft.Cache/*` |
+| Storage | `Microsoft.Storage/*` |
+| Key Vault | `Microsoft.KeyVault/*` |
+| Networking | `Microsoft.Network/*` |
+| App Services | `Microsoft.Web/*` |
+| Subscription-level | The subscription resource itself |
+| Other/unmapped | Other types, missing resource identities/assessments, and native cloud types without a recognized workload mapping |
+
+Classification uses the provider-qualified type derived from Azure resource IDs, including nested resource types, rather than a leaf name such as `vaults`. Recovery Services vaults therefore do not become Key Vault resources. Native AWS/GCP resource identities are retained; unsupported native type mappings remain visible in Other/unmapped.
+
+The queries join regulatory compliance assessments to resource assessments on **subscription ID and assessment key**. Control/standard mappings are collapsed before joining, and findings are deduplicated by **subscription, cloud-aware resource identity, and assessment key** afterward. Azure identities are case-normalized; native cloud identities retain case. Multiple controls referencing one recommendation do not inflate resource or finding counts.
+
+The summary always includes all assessment states within the selected subscription, standard, and workload scope:
+
+- **Assessed resources:** identifiable resources with at least one healthy or unhealthy assessment.
+- **Resources with failures:** assessed resources with at least one unhealthy assessment, counted once.
+- **Failed findings:** unique unhealthy resource/assessment pairs, or assessment identities when a resource ID is unavailable.
+- **High-severity failures:** failed findings whose assessment severity is High; healthy High-severity recommendations are excluded.
+- **Not applicable / Unknown state:** separate finding counts, never treated as passed.
+- **Unmapped recommendations:** regulatory recommendations with no matching resource assessment. These remain visible but are not counted as assessed resources.
+
+The **Resource detail state** filter, including **Failed only**, filters the resource detail grid only; it does not shrink the summary's coverage denominator. Findings without an identifiable resource are retained but excluded from resource totals. Workload results describe **resource posture**, not a regulatory compliance percentage or certification.
+
+### Compliance Detail
+
+Control results are grouped by subscription and standard. Use **Failed only** to prioritize remediation. Descriptions have more display space and open their full text when selected. Passed/failed/skipped values are assessment counts per control, not unique resource counts. Group rows do not default to a green success icon.
+
+An Overview selection scopes this tab to the selected subscription and standard. **Show all selected subscriptions** clears only the drill-through subscription scope; the top standard filter remains active. If the main subscription selection changes and excludes the drilled subscription, reset that detail scope rather than interpreting the empty result as compliance.
+
+## Data coverage and export
+
+Azure Resource Graph provides the current state, not historical trends. Empty results can mean missing permissions, disabled initiatives, unmatched filters, or incomplete coverage; they do not prove compliance. Not-applicable, unknown, and unmapped results are explicit.
+
+All result grids support Excel export. Azure Resource Graph result-row limits also apply to detail grids and exports; exports contain returned rows, not an unlimited inventory. Narrow subscription, standard, workload, or state filters for large scopes. Summary counts are calculated server-side before result-row limits.
+
+The editable [workbook](./regulatorycompliance.workbook) and the workbook embedded in the [deployment template](./armTemplate.json) contain the same definition.
 
 ## Try on Portal
 You can deploy the workbook by clicking on the buttons below:
@@ -9,10 +66,10 @@ You can deploy the workbook by clicking on the buttons below:
 <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Security-Center%2Fmaster%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a>
 <a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Security-Center%2Fmaster%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazuregovbutton"/></a>
 
-**Overview tab**:
+**Earlier Overview layout** (the screenshots below predate the subscription-first and Workloads updates):
 ![Workbook Overview](./regulatorycompliance1.jpg)
 
-**Detail tab**
+**Earlier Detail layout**
 ![Workbook Overview2](./regulatorycompliance2.jpg)
 
 To deploy the workbook you will need **write permissions** in the subscription where it will be stored. To view the information, you will need **read permissions** of all subscriptions that are in the defined groups.
