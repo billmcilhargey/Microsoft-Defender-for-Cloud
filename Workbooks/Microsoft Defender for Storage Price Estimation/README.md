@@ -77,8 +77,20 @@ The preview button uses this PR's branch; the published button uses upstream `ma
 
 ## Maintaining the workbook JSON
 
-Keep the standalone workbook JSON identical to `resources[0].properties.serializedData` in the ARM template when editing.
+Keep the standalone workbook JSON identical to the decoded JSON in `variables.workbookDataBase64` in the ARM template.
+ARM decodes that UTF-8 payload into `resources[0].properties.serializedData` with `base64ToString` during deployment. This keeps valid workbook `null` values and empty arrays separate from ARM-template validation without removing them or suppressing checks.
 The two-file layout is intentional: retain the paste-ready workbook and separate ARM template so manual import never requires extracting `serializedData`.
+
+For maintainers only, regenerate the encoded payload from this directory after editing the standalone workbook; keep the deployment's `base64ToString` expression intact:
+
+```powershell
+$workbookJson = Get-Content .\D4StorageDeployment.json -Raw | ConvertFrom-Json -Depth 100 | ConvertTo-Json -Depth 100 -Compress
+$template = Get-Content .\armTemplate.json -Raw | ConvertFrom-Json -Depth 100
+$template.variables.workbookDataBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($workbookJson))
+$template | ConvertTo-Json -Depth 100 | Set-Content .\armTemplate.json -Encoding utf8
+```
+
+Validate the standalone workbook against the workbook schema, decode the payload and compare its JSON, and validate the ARM envelope separately.
 
 ## PowerShell estimation at scale
 
@@ -121,5 +133,5 @@ The scientific value `5e-7` by itself is only **$0.0000005**, not a large cost. 
 
 | Version | Changes |
 | --- | --- |
-| 4.3 | Split the cost views into **Storage costs** and **Scanning costs**. Kept one shared activity source. Removed lazy loading: all workbook groups initialize when the workbook opens, while tabs continue to control visibility. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. Kept associated-cost results numeric before aggregation and standardized USD formatting to 2-7 decimals to prevent concatenated totals and expose sub-cent amounts clearly. |
+| 4.3 | Split the cost views into **Storage costs** and **Scanning costs**. Kept one shared activity source. Removed lazy loading: all workbook groups initialize when the workbook opens, while tabs continue to control visibility. Added a GitHub documentation link in the workbook header and documented loading behavior, sampling periods, and version history. Corrected PowerShell metric completeness so mixed numeric/missing observations and empty series remain incomplete instead of producing partial-cost forecasts. Kept associated-cost results numeric before aggregation and standardized USD formatting to 2-7 decimals to prevent concatenated totals and expose sub-cent amounts clearly. Encoded the ARM workbook payload in a Base64 variable, decoded during deployment, so valid workbook data is not mistaken for blank ARM properties. |
 | 4.2 | Added paste-ready workbook JSON and a separate ARM deployment template, clearer count and size units, consistent USD cost formatting and headings, explicit trial statuses, and the PowerShell estimator workflow. Corrected the matrix-producing read-operation formulas and explained calculation errors, incomplete totals, and zero-display caveats. |
