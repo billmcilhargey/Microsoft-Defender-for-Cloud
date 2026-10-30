@@ -94,6 +94,11 @@ snapshots; rerun it to refresh those CSV/JSON files.
 The outputs contain resource inventory: restrict access
 appropriately and do not commit collected customer data to this repository.
 
+CSV exports prefix formula-leading text with an apostrophe, including formulas
+after whitespace or control characters and full-width formula prefixes. Numeric
+fields are unchanged. The JSON snapshot retains original text for unmodified
+evidence; CSV text may therefore differ from the JSON.
+
 Errors are recorded and affected recommendations are withheld. After exporting
 partial evidence, the script throws if collection errors occurred. Warnings such
 as missing traffic are visible in the reports and do not become zero estimates.

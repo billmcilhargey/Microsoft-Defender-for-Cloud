@@ -103,7 +103,18 @@ $exports = @{
     'DefenderForApis-Issues.csv' = $report.Issues
 }
 foreach ($file in $exports.Keys) {
-    $exports[$file] | Export-Csv -LiteralPath (Join-Path $OutputDirectory $file) -NoTypeInformation -Encoding utf8
+    $exports[$file] | ForEach-Object {
+        $row = [ordered]@{}
+        foreach ($property in $_.PSObject.Properties) {
+            $value = $property.Value
+            if ($value -is [string] -and $value -match '^[\s\p{C}]*[=+\-@\uFF1D\uFF0B\uFF0D\uFF20]') {
+                # Prefix CSV-only text before any whitespace/control characters; preserve raw JSON evidence.
+                $value = "'" + $value
+            }
+            $row[$property.Name] = $value
+        }
+        [pscustomobject]$row
+    } | Export-Csv -LiteralPath (Join-Path $OutputDirectory $file) -NoTypeInformation -Encoding utf8
 }
 Write-Information "Standalone JSON and CSV reports exported to '$OutputDirectory'." -InformationAction Continue
 if (@($issues | Where-Object Severity -EQ 'Error').Count) {
