@@ -5,7 +5,7 @@ This workbook displays current Microsoft Defender for Cloud regulatory complianc
 
 ## Views and filters
 
-The **Subscription** and **Compliance standard** selectors apply to every tab. The standard selector defaults to all available standards rather than a hard-coded initiative.
+The **Subscription** and **Compliance standard** selectors apply to every tab. The single-select standard selector defaults to **All**; select one standard or all available standards rather than a hard-coded initiative.
 
 ### Overview
 
@@ -18,6 +18,7 @@ The **Subscription** and **Compliance standard** selectors apply to every tab. T
 ### Workloads
 
 Workload is an operational resource family, not a business application or a tag-based grouping. The resource hierarchy is **workload > subscription > resource > recommendation**.
+Azure resources are grouped by their canonical, case-insensitive ID. The reported resource ID remains available in resource detail and export; native cloud identities retain case.
 
 | Workload | Provider-qualified resource types |
 | --- | --- |
@@ -66,21 +67,15 @@ Unused nullable formatter properties are omitted so ARM template validation can 
 ## Try on Portal
 You can deploy the workbook by clicking on the buttons below:
 
-The template uses the stable `2022-04-01` workbook API. `location` defaults to the resource-group region, and `workbookSourceId` defaults to the existing `azure security center` scope; both can be overridden at deployment.
+The template uses the stable `2022-04-01` workbook API. `location` defaults to the resource-group region. `workbookSourceId` retains `azure security center` as a technical compatibility identifier for Microsoft Defender for Cloud, not a display name. Both parameters can be overridden at deployment.
 
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Security-Center%2Fmaster%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a>
-<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Security-Center%2Fmaster%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazuregovbutton"/></a>
-
-**Earlier Overview layout** (the screenshots below predate the subscription-first and Workloads updates):
-![Workbook Overview](./regulatorycompliance1.jpg)
-
-**Earlier Detail layout**
-![Workbook Overview2](./regulatorycompliance2.jpg)
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FMicrosoft-Defender-for-Cloud%2Fmain%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a>
+<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FMicrosoft-Defender-for-Cloud%2Fmain%2FWorkbooks%2FRegulatory%2520Compliance%2FarmTemplate.json" target="_blank"><img src="https://aka.ms/deploytoazuregovbutton"/></a>
 
 To deploy the workbook you will need **write permissions** in the subscription where it will be stored. To view the information, you will need **read permissions** of all subscriptions that are in the defined groups.
 
 ## Questions
-You can submit any questions or requests [here](https://github.com/Azure/Azure-Security-Center/issues). Please also refer to our [Wiki](https://github.com/Azure/Azure-Security-Center/wiki#resources), as it will provide you with further information.
+You can submit any questions or requests [here](https://github.com/Azure/Microsoft-Defender-for-Cloud/issues). Please also refer to our [Wiki](https://github.com/Azure/Microsoft-Defender-for-Cloud/wiki#resources), as it will provide you with further information.
 
 ## Contributing
 
