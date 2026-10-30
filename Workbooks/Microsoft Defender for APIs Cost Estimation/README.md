@@ -250,6 +250,9 @@ properties are omitted. This preserves GET behavior and avoids the repository's
 pinned legacy ARM-TTK incorrectly flagging blank metadata inside serialized
 workbook JSON. The ARM deployment still contains the identical plain workbook
 JSON; it does not hide it in an encoded or concatenated expression.
+Cost summaries use one matching currency-column rule instead of repeated
+per-column formatting. The native summaries contain one row each, and the log
+summary at most two rows, so they do not need per-table search filters.
 
 Local schema, KQL-parser and calculation checks do not replace a live Azure
 portal import or verification of actual telemetry in an approved environment.

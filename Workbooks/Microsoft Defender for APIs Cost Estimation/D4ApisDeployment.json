@@ -607,15 +607,13 @@
                     "crossComponentResources": [
                       "{Subscription}"
                     ],
-                    "noDataMessage": "Not calculated: required query data is unavailable. Enable Show details to inspect inventory and diagnostics. Missing estimates are not zero.",
+                    "noDataMessage": "Rollout cost not calculated: eligible API inventory or traffic is unavailable. Enable Show details to inspect the source errors. Missing estimates are not zero.",
                     "showExportToExcel": true,
-                    "exportToExcelOptions": "all",
                     "gridSettings": {
-                      "rowLimit": 1000,
-                      "filter": true,
+                      "rowLimit": 1,
                       "formatters": [
                         {
-                          "columnMatch": "Best-fit modeled monthly cost",
+                          "columnMatch": "^Best-fit modeled monthly cost$",
                           "formatter": 1,
                           "numberFormat": {
                             "unit": 0,
@@ -644,41 +642,13 @@
                     "crossComponentResources": [
                       "{Subscription}"
                     ],
-                    "noDataMessage": "Not calculated: required query data is unavailable. Enable Show details to inspect inventory and diagnostics. Missing estimates are not zero.",
+                    "noDataMessage": "Current-plan optimization not calculated: verify onboarding, configured plan and request data. Enable Show details for diagnostics. Missing estimates are not zero.",
                     "showExportToExcel": true,
-                    "exportToExcelOptions": "all",
                     "gridSettings": {
-                      "rowLimit": 1000,
-                      "filter": true,
+                      "rowLimit": 1,
                       "formatters": [
                         {
-                          "columnMatch": "Best-fit modeled monthly cost",
-                          "formatter": 1,
-                          "numberFormat": {
-                            "unit": 0,
-                            "options": {
-                              "style": "currency",
-                              "currency": "USD",
-                              "minimumFractionDigits": 2,
-                              "maximumFractionDigits": 2
-                            }
-                          }
-                        },
-                        {
-                          "columnMatch": "Configured-plan modeled monthly cost",
-                          "formatter": 1,
-                          "numberFormat": {
-                            "unit": 0,
-                            "options": {
-                              "style": "currency",
-                              "currency": "USD",
-                              "minimumFractionDigits": 2,
-                              "maximumFractionDigits": 2
-                            }
-                          }
-                        },
-                        {
-                          "columnMatch": "Potential modeled monthly savings",
+                          "columnMatch": "^.*modeled monthly (cost|savings)$",
                           "formatter": 1,
                           "numberFormat": {
                             "unit": 0,
@@ -854,41 +824,13 @@
                 "{Workspace}"
               ],
               "timeContextFromParameter": "TimeRange",
-              "noDataMessage": "Not calculated: required query data is unavailable. Enable Show details to inspect inventory and diagnostics. Missing estimates are not zero.",
+              "noDataMessage": "Log-based recommendations not calculated: verify workspace access and complete unsampled managed-gateway logs. Source failures are not zero usage.",
               "showExportToExcel": true,
-              "exportToExcelOptions": "all",
               "gridSettings": {
-                "rowLimit": 1000,
-                "filter": true,
+                "rowLimit": 2,
                 "formatters": [
                   {
-                    "columnMatch": "Best-fit modeled monthly cost",
-                    "formatter": 1,
-                    "numberFormat": {
-                      "unit": 0,
-                      "options": {
-                        "style": "currency",
-                        "currency": "USD",
-                        "minimumFractionDigits": 2,
-                        "maximumFractionDigits": 2
-                      }
-                    }
-                  },
-                  {
-                    "columnMatch": "Configured-plan modeled monthly cost",
-                    "formatter": 1,
-                    "numberFormat": {
-                      "unit": 0,
-                      "options": {
-                        "style": "currency",
-                        "currency": "USD",
-                        "minimumFractionDigits": 2,
-                        "maximumFractionDigits": 2
-                      }
-                    }
-                  },
-                  {
-                    "columnMatch": "Potential modeled monthly savings",
+                    "columnMatch": "^.*modeled monthly (cost|savings)$",
                     "formatter": 1,
                     "numberFormat": {
                       "unit": 0,
